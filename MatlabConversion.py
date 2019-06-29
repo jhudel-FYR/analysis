@@ -28,17 +28,18 @@ if len(cut) == 0:
     cut = 0
 
 #remove the error cut time, and separate time
-time = data[cut+1:,1]
+time = data[cut:,1]
 times = time * cycle
 
-data = data[cut+1:,1:];
+data = data[cut:,1:];
 [n,m] = data.shape
 
-'''not necessary: '''
+'''not used elsewhere:
 #convert data
 L = data.shape[0];
 # conv = cref/data(L,1);
 dataconv = data;
+'''
 
 #delta time
 dtime = np.diff(time);
@@ -47,43 +48,37 @@ dtime = np.diff(time);
 #the two numerical data points subtracted to find the derivative.
 timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
-
-
-
-''''
-
-data = dataraw.as_matrix()
-# Write your DataFrame to a file
-writer = pd.ExcelWriter('example.xlsx', engine='xlsxwriter')
-yourData.to_excel(writer, 'Sheet1')
-writer.save()
-
-
-Stopping point
-''''
-
-
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
-check1 = np.empty((50,m-1,))
-check2 = np.empty((50,m-1))
-x1 = NaN(50,m-1);
-x2 = NaN(50,m-1);
-fitrange1 = NaN(50,m-1);
-fitrange2 = NaN(50,m-1);
-for i = 1:(m-1)
-    sdata(:,i) = smooth(data(:,i));
+check1 = np.empty((50,m,))
+check2 = np.empty((50,m))
+x1 = np.empty((50,m))
+x2 = np.empty((50,m))
+fitrange1 = np.empty((50,m))
+fitrange2 = np.empty((50,m))
+sdata = np.empty((n,m))
+first = np.empty((n-1,m))
+dfirst,d2time = (np.empty((n-2,m)) for i in range(2))
+sfirst = first
+
+for i in range(m-1): # 1 to m-1
+    '''sdata[:,i] = smooth(data[:,i]); why is the data smoothed here?'''
+    sdata[:,i] = data[:,i] #'''temporary replacement'''
     #take the 1st derivative
-    first(:,i) = diff(sdata(:,i))./dtime;
-    dfirst(:,i) = diff(first(:,i));
-    d2time = diff(timediff);
+    first[:,i] = np.diff(sdata[:,i])/dtime
+    dfirst[:,i] = np.diff(first[:,i])
+    d2time = np.diff(timediff)
     #smooth the first derivative.  Without this step the peak finder will
     #find peaks that are trivial, even with thresholding.  It does not
     #change the zeros
-     sfirst(:,i) = smooth(first(:,i));
+    '''sfirst[:,i] = smooth(first[:,i]) another smoothing'''
+    sfirst[:,i] = first[:,i]
 
+'''
+Stopping point
+'''
      #find the first two peaks, they need to exceed a min peak height and
      #width
-    [pk,l,hi,p] = findpeaks(first(:,i),'SortStr','descend','MinPeakProminence',15,'MinPeakWidth',3,'WidthReference','halfprom');
+    [pk,l,hi,p] = findpeaks(first(:,i],'SortStr','descend','MinPeakProminence',15,'MinPeakWidth',3,'WidthReference','halfprom');
     #Pick the biggest two peaks, then determine which occurs first and put
     #it first (location(first peak, second peak)
     if length(pk)==1
@@ -313,5 +308,16 @@ else
 end
 xlswrite('InflectionPoints.xlsx', TXT(2:m),'Data','B1')
 xlswrite('InflectionPoints.xlsx', [times, dataconv],'Data','A2')
+
+
+
+'''
+SIDE NOTES:
+
+data = dataraw.as_matrix()
+# Write your DataFrame to a file
+writer = pd.ExcelWriter('example.xlsx', engine='xlsxwriter')
+yourData.to_excel(writer, 'Sheet1')
+writer.save()
 
 '''
