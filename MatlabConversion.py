@@ -1,11 +1,33 @@
-[2
+
 #packages
 from tkinter import filedialog
-from tkinter import *
+#from tkinter import *
 import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
+from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+%matplotlib inline
+
+def square(list):
+    return [i ** 2 for i in list]
+
+def polyequation(coef,listx):
+    x2 = square(listx)
+    ax2 = [coef[0]*x for x in x2]
+    bx = [coef[1]*x for x in listx]
+    return [(a+b+coef[2]) for (a,b) in zip(ax2,bx)]
+
+
+def smooth(a,WSZ):
+    # a: NumPy 1-D array containing the data to be smoothed
+    # WSZ: smoothing window size needs, which must be odd number,
+    # as in the original MATLAB implementation
+    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
+    r = np.arange(1,WSZ-1,2)
+    start = np.cumsum(a[:WSZ-1])[::2]/r
+    stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
+    return np.concatenate((  start , out0, stop  ))
 
 #initialization
 root = Tk()
@@ -15,7 +37,7 @@ root = Tk()
 #non-numerical data is ignored by the program (we extract numerical data num)
 root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
 path = root.filename #filedialog.askopenfilename()
-
+path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
 dataraw = pd.ExcelFile(path)
 dataraw = dataraw.parse('SYBR')
 data = dataraw.values
@@ -24,136 +46,138 @@ data = dataraw.values
 cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
 if len(cycle) == 0 :
     cycle = 27
+else:
+    cycle = float(cycle)
 
 #amount to cut due change in fluorescence during heating
 cut = input('Fluorescence error cut time : - [default:0] \n')
 if len(cut) == 0:
     cut = 0
+else:
+    cut = float(cut)
 
 #remove the error cut time, and separate time
-time = data[cut:,1]
+time = data[cut:,0]
 times = time * cycle
 
 data = data[cut:,1:];
 [n,m] = data.shape
 
-'''not used elsewhere:
 #convert data
-L = data.shape[0];
+L = data.shape[0]
 # conv = cref/data(L,1);
-dataconv = data;
-'''
+dataconv = data
+
 
 #delta time
-dtime = np.diff(time);
-'''extdtime = dtime * np.ones(shape=(1,m-1)) <- doesn't get called anywhere'''
+dtime = np.diff(times)'''or time'''
+extdtime = np.tile(dtime,(1,m-1))
 #define a matrix of times for the first derivative that is the average of
 #the two numerical data points subtracted to find the derivative.
 timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
 #Initialize matrices and lists
 check1,check2,x1,x2,fitrange1,fitrange2 = (np.empty((50,m)) for i in range(6))
-sdata,locs,pks,H,Pr,co2 = (np.empty((n,m)) for i in range(6))
-first = np.empty((n-1,m))
-IF2,I2e,I2 = ([] for i in range(3))
-dfirst,d2time = (np.empty((n-2,m)) for i in range(2))
+locs,pks,H,Pr,W = (np.empty((2,m)) for i in range(4))
+co2 = np.empty((3,m))
+sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
+IF2,I2e,I2 = ([0]*m for i in range(3))
+I2start = [0]*m
+d2time = np.empty((n-2,m))
 sfirst = first
 
-i = 1
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
-for i in range(m-1): # 1 to m-1
-    '''sdata[:,i] = smooth(data[:,i]); why is the data smoothed here?'''
-    sdata[:,i] = data[:,i] #'''temporary replacement'''
+for i in range(1,m-1): # 1 to m-1
+    'sdata[:,i] = smooth(data[:,i]); why is the data smoothed here?'''
+    sdata[:,i] = smooth(data[:,i],len(data[:,i])) #'''temporary replacement'''
     #take the 1st derivative
-    first[:,i] = np.diff(sdata[:,i])/dtime
-    dfirst[:,i] = np.diff(first[:,i])
+    first[:,i] = np.gradient(sdata[:,i])
+    #first[:,i] = np.diff(sdata[:,i])/dtime
+    dfirst[:,i] = np.gradient(first[:,i])
+    #dfirst[:,i] = np.diff(first[:,i])
     d2time = np.diff(timediff)
-    #smooth the first derivative.  Without this step the peak finder will
-    #find peaks that are trivial, even with thresholding.  It does not
-    #change the zeros
-    '''sfirst[:,i] = smooth(first[:,i]) another smoothing'''
-    sfirst[:,i] = first[:,i]
+
+    #smooth the first derivative.  Without this step the peak finder will find peaks
+    #that are trivial, even with thresholding.  It does not change the zeros
+    sfirst[:,i] = smooth(first[:,i],len(first[:,i])) #another smoothing'''
 
     #find the first two peaks, they need to exceed a min peak height and width
-    peaks,properties = find_peaks(first[:,i], prominence=15, width=3)
-    pk = properties["peak_heights"]
+    peaks,properties = find_peaks(first[:,i], prominence=15,width=3)
     l = peaks
-    hi = properties["width_heights"]
+    pk = [first[x,i] for x in peaks]
+    hi = properties["widths"]
     p = properties["prominences"]
-
     #    [pk,l,hi,p] = findpeaks(first(:,i),'SortStr','descend','MinPeakProminence',15,'MinPeakWidth',3,'WidthReference','halfprom')
 
     #Pick the biggest two peaks, then determine which occurs first and put
     #it first (location(first peak, second peak)
     if len(pk)==1:
-        locs[:,i] = [l[1],0]
-        pks[:,i] = [pk[1],0]
-        H[:,i] = [hi[1],0]
-        Pr[:,i] = [p[1],0]
+        locs[:,i] = [l[0],0]
+        pks[:,i] = [pk[0],0]
+        H[:,i] = [hi[0],0]
+        Pr[:,i] = [p[0],0]
         IF2[i] = 0
         co2[:,i] = [0,0,0]
         I2e[i] = 0
         I2start[i] = 0
         I2[i] = 0
     else:
-        if l[1]>l[2]:
-            locs[:,i] = [l[2],l[1]]
-            pks[:,i] = [pk[2],pk[1]]
-            H[:,i] = [hi[2],hi[1]]
-            Pr[:,i] = [p[2],p[1]]
-        else:
-            locs[:,i] = [l[1],l[2]]
-            pks[:,i] = [pk[1],pk[2]]
-            H[:,i] = [hi[1],hi[2]]
-            Pr[:,i] = [p[1],p[2]]
+        locs[:,i] = [l[0],l[1]]
+        pks[:,i] = [pk[0],pk[1]]
+        H[:,i] = [hi[0],hi[1]]
+        Pr[:,i] = [p[0],p[1]]
 
     #take the width of the peak, make it an integer, divide in half, and
     #add two to get a region to fit over
-    W[:,i] = round(H[:,i]/2,0)-1 #this is the half width
+    W[:,i] = np.round(H[:,i],0)/2 #this is the half width
     for j in range(1,2):
         if W[j,i] > 32:
             W[j,i] = np.floor(W[j,i]/1.5)
         if W[j,i] < 2:
             W[j,i] = 2
 
-
-'''
-Stopping point
-'''
-
     #fit the first and second peaks using the location of the peak
     #(inflection point) and fitting over the peak half width.
     #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
-    b1 = locs[1,i]-W[1,i]
+    polyDegree = 2
+    b1 = int(locs[0,i]-W[0,i])
     if b1 == 0:
         b1 = 1
-    xrange1 = [range(b1,(locs[1,i]+W[1,i]))]
-    x1[1:len(xrange1),i] = xrange1
-    fitd = fit(timediff(xrange1),first[xrange1,i],'poly2');'''python equivalent?'''
+    xrange1 = [i for i in range(b1,int(locs[0,i]+W[0,i]))]
+    x1[:len(xrange1),i] = xrange1
+    fitd = np.polyfit(timediff[xrange1[0]:xrange1[-1]],first[xrange1[0]:xrange1[-1],i],polyDegree)
     if locs[2,i] != 0
-        xrange2 = [(locs[2,i]-W[2,i]):(locs[2,i]+W[2,i])]
-         x2[1:len(xrange2),i] = xrange2
-        fitd2 = fit(timediff(xrange2),first[xrange2,i],'poly2')
-        co2[:,i] = coeffvalues(fitd2)
-        check2[1:len(xrange2),i] = (timediff(xrange2).^2)*co2[1,i]+timediff(xrange2)*co2[2,i]+co2[3,i]
-        fitrange2[1:len(xrange2),i] = first[xrange2,i]
+        xrange2 = [i for i in range(int(locs[1,i]-W[1,i]),int(locs[1,i]+W[1,i]))]
+         x2[:len(xrange2),i] = xrange2
+        fitd2 = np.polyfit(timediff[xrange2[0]:xrange2[-1]],first[xrange2[0]:xrange2[-1],i],polyDegree)
+        co2[:,i] = fitd2
+        check2[:len(xrange2)-1,i] = polyequation(co2[:,i],timediff[xrange2[0]:xrange2[-1]])
+        fitrange2[:len(xrange2)-1,i] = first[xrange2[0]:xrange2[-1],i]
+        IF2[i] = -co2[1,i]/(2*co2[0,i])
 
-        IF2[i] = -co2[2,i]/[2*co2[1,i])
-       [Y,I2[i]] = min((times-IF2[i]).^2)
+        I2[i] = np.argmin(square(times-IF2[i]))
+        Y = (times[I2[i]]-IF2[i])**2
 
         #find where the second rise begins in the first derivative data
-        I2e[i] = locs[2,i]-W[2,i]  #start below the second peak in the smoothed first derivative, find where the rise begins
+        I2e[i] = locs[0,i]-W[0,i]  #start below the second peak in the smoothed first derivative, find where the rise begins
 
-        while sfirst[I2e[i],i]>sfirst[I2e[i]-1,i] and sfirst[I2e[i]-1,i]>sfirst[I2e[i]-2,i] and sfirst[I2e[i],i]>0 & sfirst[I2e[i]-1,i]>0:
-            I2e[i] = I2e[i]-1
+        while sfirst[int(I2e[i]),i]>sfirst[int(I2e[i]-1),i] and sfirst[int(I2e[i])-1,i]>sfirst[int(I2e[i])-2,i] and sfirst[int(I2e[i]),i]>0 and sfirst[int(I2e[i])-1,i]>0:
+            I2e[i] -= -1
+
         #find where the rise begins (index) in the data
-        [Y,I2start[i]] = min((times-timediff(I2e[i])).^2)
+        I2start[i] = np.argmin(square(times-timediff[int(I2e[i])]))
+        Y = times[I2start[i]]-timediff[int(I2e[i])]
+
+
+'''
+stopping point
+'''
 
 
     #retrieve the fitting coefficients, co1(1,:) = a, co1[2,:) = b, co1(3,:)
     #= c for peak 1
     co1[:,i] = coeffvalues(fitd)
-    check1[1:len(xrange1),i] = (timediff(xrange1).^2)*co1[1,i]+timediff(xrange1)*co1[2,i]+co1[3,i]
+    check1[1:len(xrange1),i] = (timediff[xrange1).^2]*co1[1,i]+timediff[xrange1]*co1[2,i]+co1[3,i]
     fitrange1[1:len(xrange1),i] = first[xrange1,i]
     #IF1 = first inflection point
     IF1[i] = -co1[2,i]/(2*co1[1,i])
@@ -177,7 +201,7 @@ Stopping point
 
 
     #find where the first rise begins, index in the data
-    [Y,I1start[i]] = min((times-timediff(I1e[i])).^2)
+    [Y,I1start[i]] = min((times-timediff[I1e[i]]).^2)
 
 
 
@@ -282,14 +306,14 @@ else
 
 ## Write data to an excel file
 
-label = {' ';'Inflection 1 (s)';'Inflection 2 (s)';'Max derivative 1 RFU/s)';'Max derivative 2 (RFU/s)';'Plateau 1 (RFU)';'Plateau 2 (RFU)'};
+label = {' ';'Inflection 1 (s)';'Inflection 2 (s)';'Max derivative 1 RFU/s)';'Plateau 1 (RFU)';'Plateau 2 (RFU)'};
 
 xlswrite('InflectionPoints.xlsx', label, 'Inflection','A1')
-xlswrite('InflectionPoints.xlsx', TXT[2:m],'Inflection','B1')
+xlswrite('InflectionPoints.xlsx', TXT[2:m],'Inflection','B1') #well label
 if locs[2,1]!=0:
-    xlswrite('InflectionPoints.xlsx', [IF1;IF2;Max1;Max2;plateau1;plateau2], 'Inflection','B2')
+    xlswrite('InflectionPoints.xlsx', [IF1/60;IF2/60;Max1/60;plateau1;plateau2], 'Inflection','B2')
 else:
-    xlswrite('InflectionPoints.xlsx', [IF1;IF2;Max1;Max2;plateau1;plateau2], 'Inflection','B2')
+    xlswrite('InflectionPoints.xlsx', [IF1/60;IF2/60;Max1/60;plateau1;plateau2], 'Inflection','B2')
 
 xlswrite('InflectionPoints.xlsx', TXT[2:m],'Data','B1')
 xlswrite('InflectionPoints.xlsx', [times, dataconv],'Data','A2')
