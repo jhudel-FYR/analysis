@@ -1,28 +1,30 @@
 
 #packages
-from tkinter import filedialog
-#from tkinter import *
+from tkinter import *
 import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 %matplotlib inline
+import xlsxwriter
+import sys
+import os
 
-def square(list):
-    return [i ** 2 for i in list]
-
-def polyequation(coef,listx):
-    x2 = square(listx)
-    ax2 = [coef[0]*x for x in x2]
-    bx = [coef[1]*x for x in listx]
-    return [(a+b+coef[2]) for (a,b) in zip(ax2,bx)]
+sys.path.append('Git/')
+from assistFunctions import square,polyEquation,getMin,smooth
 
 
-def smooth(a,WSZ):
+def getMin(time,inflectionList):
+    minIndex = np.argmin(square(times-inflectionList))
+    minValue = (times[minIndex]-inflectionList)**2
+    return minValue,minIndex
+
+def smooth(a):
     # a: NumPy 1-D array containing the data to be smoothed
     # WSZ: smoothing window size needs, which must be odd number,
     # as in the original MATLAB implementation
+    WSZ = 5
     out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
     r = np.arange(1,WSZ-1,2)
     start = np.cumsum(a[:WSZ-1])[::2]/r
@@ -31,13 +33,13 @@ def smooth(a,WSZ):
 
 #initialization
 root = Tk()
-
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
 root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
 path = root.filename #filedialog.askopenfilename()
 path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
+
 dataraw = pd.ExcelFile(path)
 dataraw = dataraw.parse('SYBR')
 data = dataraw.values
@@ -54,7 +56,7 @@ cut = input('Fluorescence error cut time : - [default:0] \n')
 if len(cut) == 0:
     cut = 0
 else:
-    cut = float(cut)
+    cut = int(cut)
 
 #remove the error cut time, and separate time
 time = data[cut:,0]
@@ -70,26 +72,27 @@ dataconv = data
 
 
 #delta time
-dtime = np.diff(times)'''or time'''
+dtime = np.diff(time)
 extdtime = np.tile(dtime,(1,m-1))
 #define a matrix of times for the first derivative that is the average of
 #the two numerical data points subtracted to find the derivative.
 timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
 #Initialize matrices and lists
-check1,check2,x1,x2,fitrange1,fitrange2 = (np.empty((50,m)) for i in range(6))
-locs,pks,H,Pr,W = (np.empty((2,m)) for i in range(4))
-co2 = np.empty((3,m))
+check1,check2,x1,x2,fitrange1,fitrange2 = (np.empty((100,m)) for i in range(6))
+locs,pks,H,Pr,W = (np.empty((2,m)) for i in range(5))
+co1,co2 = (np.empty((3,m)) for i in range(2))
 sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
-IF2,I2e,I2 = ([0]*m for i in range(3))
-I2start = [0]*m
+I1start,I2start,IF1,I1e,I1,IF2,I2e,I2 = ([0]*m for i in range(8))
 d2time = np.empty((n-2,m))
 sfirst = first
+plateau1,plateau2 = (np.empty((2,m)) for i in range(2))
 
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
-for i in range(1,m-1): # 1 to m-1
-    'sdata[:,i] = smooth(data[:,i]); why is the data smoothed here?'''
-    sdata[:,i] = smooth(data[:,i],len(data[:,i])) #'''temporary replacement'''
+for i in range(m): # 1 to m-1
+    #sdata[:,i] = smooth(data[:,i]); why is the data smoothed here?'''
+    sdata[:,i] = smooth(data[:,i]) #'''temporary replacement'''
+    sdata[:,i] = data[:,i]
     #take the 1st derivative
     first[:,i] = np.gradient(sdata[:,i])
     #first[:,i] = np.diff(sdata[:,i])/dtime
@@ -99,7 +102,7 @@ for i in range(1,m-1): # 1 to m-1
 
     #smooth the first derivative.  Without this step the peak finder will find peaks
     #that are trivial, even with thresholding.  It does not change the zeros
-    sfirst[:,i] = smooth(first[:,i],len(first[:,i])) #another smoothing'''
+    sfirst[:,i] = smooth(first[:,i]) #another smoothing'''
 
     #find the first two peaks, they need to exceed a min peak height and width
     peaks,properties = find_peaks(first[:,i], prominence=15,width=3)
@@ -146,17 +149,16 @@ for i in range(1,m-1): # 1 to m-1
     xrange1 = [i for i in range(b1,int(locs[0,i]+W[0,i]))]
     x1[:len(xrange1),i] = xrange1
     fitd = np.polyfit(timediff[xrange1[0]:xrange1[-1]],first[xrange1[0]:xrange1[-1],i],polyDegree)
-    if locs[2,i] != 0
+    if locs[1,i] != 0:
         xrange2 = [i for i in range(int(locs[1,i]-W[1,i]),int(locs[1,i]+W[1,i]))]
-         x2[:len(xrange2),i] = xrange2
+        x2[:len(xrange2),i] = xrange2
         fitd2 = np.polyfit(timediff[xrange2[0]:xrange2[-1]],first[xrange2[0]:xrange2[-1],i],polyDegree)
         co2[:,i] = fitd2
-        check2[:len(xrange2)-1,i] = polyequation(co2[:,i],timediff[xrange2[0]:xrange2[-1]])
+        check2[:len(xrange2)-1,i] = polyEquation(co2[:,i],timediff[xrange2[0]:xrange2[-1]])
         fitrange2[:len(xrange2)-1,i] = first[xrange2[0]:xrange2[-1],i]
         IF2[i] = -co2[1,i]/(2*co2[0,i])
 
-        I2[i] = np.argmin(square(times-IF2[i]))
-        Y = (times[I2[i]]-IF2[i])**2
+        Y,I2[i] = getMin(times,IF2[i])
 
         #find where the second rise begins in the first derivative data
         I2e[i] = locs[0,i]-W[0,i]  #start below the second peak in the smoothed first derivative, find where the rise begins
@@ -165,35 +167,25 @@ for i in range(1,m-1): # 1 to m-1
             I2e[i] -= -1
 
         #find where the rise begins (index) in the data
-        I2start[i] = np.argmin(square(times-timediff[int(I2e[i])]))
-        Y = times[I2start[i]]-timediff[int(I2e[i])]
+    Y,I2start[i] = getMin(times,timediff[int(I2e[i])])
 
-
-'''
-stopping point
-'''
-
-
-    #retrieve the fitting coefficients, co1(1,:) = a, co1[2,:) = b, co1(3,:)
-    #= c for peak 1
-    co1[:,i] = coeffvalues(fitd)
-    check1[1:len(xrange1),i] = (timediff[xrange1).^2]*co1[1,i]+timediff[xrange1]*co1[2,i]+co1[3,i]
-    fitrange1[1:len(xrange1),i] = first[xrange1,i]
+    #retrieve the fitting coefficients, co1(1,:) = a, co1(2,:) = b, co1(3,:) = c for peak 1
+    co1[:,i] = fitd
+    check1[:len(xrange1)-1,i] = polyEquation(co1[:,i],timediff[xrange1[0]:xrange1[-1]])
+    fitrange1[:len(xrange1)-1,i] = first[xrange1[0]:xrange1[-1],i]
     #IF1 = first inflection point
-    IF1[i] = -co1[2,i]/(2*co1[1,i])
-
+    IF1[i] = -co1[1,i]/(2*co1[0,i])
 
     #find the closest time index in the data (times) to the inflection points
-    [Y,I1[i]] = min((times-IF1[i]).^2)
+    Y,I1[i] = getMin(times,IF1[i])
 
     #find the best place to start fitting data on the first rise, in first
     #derivative indices by looking for where the first derivative no longer
     #is increasing (two points in a row)
-    I1e[i] = locs[1,i]
-     if I1e[i]>2:
-         I1e[i] = I1e[i] - np.floor(W[1,i]/2)
-        while sfirst[I1e[i],i]>sfirst[I1e[i]-1,i] & sfirst[I1e[i]-1,i]>sfirst[I1e[i]-2,i] &
-                I1e[i]>2 & sfirst[I1e[i],i]>0 &sfirst[I1e[i]-1,i]>0:
+    I1e[i] = locs[0,i]
+    if I1e[i]>2:
+        I1e[i] = int(I1e[i] - np.floor(W[0,i]/2))
+        while sfirst[I1e[i],i]>sfirst[I1e[i]-1,i] and sfirst[I1e[i]-1,i]>sfirst[I1e[i]-2,i] and I1e[i]>2 and sfirst[I1e[i],i]>0 and sfirst[I1e[i]-1,i]>0:
             I1e[i] = I1e[i]-1
             if I1e[i] == 2:
                 I1e[i] = 1
@@ -201,131 +193,92 @@ stopping point
 
 
     #find where the first rise begins, index in the data
-    [Y,I1start[i]] = min((times-timediff[I1e[i]]).^2)
-
-
+    Y,I1start[i] = getMin(times,timediff[I1e[i]])
 
     #clear mins test pk l hi p xrange1 xrange2
 
-
-## Plot results
-#check rough and fitted inflection points on the first derivative,
-#calculate the value of y given the inflection point (x).
-y1 = (co1[1,:].*IF1.^2+co1[2,:].*IF1+co1[3,:]) #max first derivative, first rise (in RFU/s)
-y2 = (co2[1,:].*IF2.^2+co2[2,:].*IF2+co2[3,:]) #max first derivative, second rise (in RFU/s)
-plot(timediff,first)
-title('1st Derivatives with Inflection Points')
-hold on
-plot(IF1,y1,'o')
-plot(IF2,y2,'o')
-hold off
-figure(2)
-plot(first)
-hold on
-plot(locs,pks,'o')
-title('1st Derivatives with Rough Inflection Points')
-hold off
-
 #background correct data
-for j in range(1,m-1):
-    if I1start[j] == 1:
-        BG[j] = dataconv[1,j]
+BG = [0]*m
+for j in range(m):
+    if I1start[j] == 0:
+        BG[j] = dataconv[0,j]
     elif I1start[j]<10:
-        BG[j] = dataconv[2,j]
-    else
-        BG[j] = mean(dataconv[I1start[j],j],dataconv[I1start[j]-1,j])
+        BG[j] = dataconv[1,j]
+    else:
+        #index out of bounds eror:
+        BG[j] = np.nanmean([dataconv[int(I1start[j]-i),j] for i in range(1)])
     dataconv[:,j] = dataconv[:,j]-BG[j]
 
 #find first plateau level
-for j in range(1,m-1):
-    if locs[2,j] != 0:
-    plateau1[:,j] = mean([dataconv[I2start[j]-2,j],dataconv[I2start[j]-1,j],dataconv[I2start[j],j]]);
-    else
-        plateau1(:,j) = 0
+for j in range(m):
+    if locs[1,j] != 0:
+        plateau1[:,j] = np.nanmean([dataconv[I2start[j]-i,j] for i in range(3)])
+    else:
+        plateau1[:,j] = 0
 
-figure(3)
-for j in range(1,m-1):
-    plt.plot(times[I1start[j]:I1[j]],dataconv[I1start[j]:I1[j],j])
-title('Fitting Region, Phase I')
-plt.show()
-
-if locs[2,1] != 0:
-    figure(4)
-    for j in range(1,m-1):
-        if I2start>0:
-        plt.plot(times[I2start[j]:I2[j]],dataconv[I2start[j]:I2[j],j])
-    title('Fitting Region, Phase II')
-    plt.show()
-
-
-#plot the fit over the peak for the first derivative
-figure(5)
-plot(x1,check1,'b')
-plot(x1,fitrange1,'k')
-plt.show()
-title('Check fit for inflection point 1')
-
-#plot the fit over the peak for the second derivative
-if locs[2,1) != 0
-    figure(6)
-    plot(x2,check2,'b')
-    plot(x2,fitrange2,'k')
-    title('Check fit for inflection point 2')
-    plt.show()
-
-#plot the background corrected data with the calculated first plateau level
-#indicated
-figure(7)
-for j in range(1,m-1):
-    plt.plot(times,dataconv[:,j])
-    ax = gca
-    ax.ColorOrderIndex = 1+np.floor(j/3)
-    legend(TXT[2:m))
-    plt.xlabel('Time (s)')
-    plt.ylabel('RFU')
-    plt.show()
-title('Background Corrected Data with plateau levels')
-
-for j in range(1,m-1):
-    plt.plot(times, plateau1[j]*np.ones((L,1)),'k')
-    plt.ylabel('RFU')
-    plt.xlabel('Time (s)')
-plt.show()
 
 #Calculate the final RFU for all points
-plateau2 = dataconv[L,:]
+plateau2 = dataconv #[L-1,:]
 
 #find max first derivative at each phase
-idx1 = sub2ind(size(first),locs[1,:],[1:len(locs)])
-Max1 = first[idx1]
-if locs[:,2]!=0:
-    idx2 = sub2ind[size(first),locs[2,:],[1:len(locs)]]
-    Max2 = first[idx2]
-else
+index = [(int(j),i) for i,j in enumerate(locs[0,:])]
+Max1 = [first[int(j),i] for i,j in enumerate(locs[0,:])]
+if locs[1,1]!=0:
+    Max2 = [first[int(j),i] for i,j in enumerate(locs[1,:])]
+else:
     Max2 = np.zeros((1,m-1))
 
+
+#Get labels
+#root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
+infopath ='20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
+labelraw = pd.ExcelFile(infopath)
+labelraw = labelraw.parse('0')
+label = labelraw.values
+txtLabel = label[:,4] + '_' + label[:,5] + '_1'
+
 ## Write data to an excel file
+workbook = xlsxwriter.Workbook(path[:-8]+'python_output.xlsx')
+worksheet = workbook.add_worksheet('InflectionPoints.xlsx')
 
-label = {' ';'Inflection 1 (s)';'Inflection 2 (s)';'Max derivative 1 RFU/s)';'Plateau 1 (RFU)';'Plateau 2 (RFU)'};
+label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 RFU/min)','Max derivative 2 RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
 
-xlswrite('InflectionPoints.xlsx', label, 'Inflection','A1')
-xlswrite('InflectionPoints.xlsx', TXT[2:m],'Inflection','B1') #well label
-if locs[2,1]!=0:
-    xlswrite('InflectionPoints.xlsx', [IF1/60;IF2/60;Max1/60;plateau1;plateau2], 'Inflection','B2')
-else:
-    xlswrite('InflectionPoints.xlsx', [IF1/60;IF2/60;Max1/60;plateau1;plateau2], 'Inflection','B2')
+for i,item in enumerate(label):
+    worksheet.write(i, 0, item)
+    worksheet.write(i + 10, 0, item)
 
-xlswrite('InflectionPoints.xlsx', TXT[2:m],'Data','B1')
-xlswrite('InflectionPoints.xlsx', [times, dataconv],'Data','A2')
+for j,item in enumerate(IF1):
+    col = j + 1
+    worksheet.write(0,col,txtLabel[j])
+    worksheet.write(1,col,IF1[j]/60)
+    worksheet.write(2,col,IF2[j]/60)
+    worksheet.write(3,col,Max1[0]/60)
+    worksheet.write(4,col,Max2[0]/60)
+    worksheet.write(5,col,plateau1[0,j])
+    worksheet.write(6,col,plateau2[0,j])
+
+    worksheet.write(10,col,txtLabel[j])
+    worksheet.write(11,col,IF1[j]/60)
+    worksheet.write(12,col,IF2[j]/60)
+    worksheet.write(13,col,Max1[1]/60)
+    worksheet.write(14,col,Max2[1]/60)
+    worksheet.write(15,col,plateau1[1,j])
+    worksheet.write(16,col,plateau2[1,j])
+    #worksheet.write(10,1,[IF1[1]/60,IF2[1]/60,Max1[1]/60,plateau1[1],plateau2[1]])
+
+worksheet.set_column(0,30)
+
+datasheet = workbook.add_worksheet('Data.xlsx')
+for i in range(m):
+    datasheet.write(0,i,txtLabel[i])
+
+col = 0
+for row, data in enumerate(times):
+    datasheet.write(row, col, data)
+
+row = 0
+for col, data in enumerate(dataconv):
+    datasheet.write_column(row, col, data)
 
 
-
-'''
-SIDE NOTES:
-
-# Alternative python writer:
-writer = pd.ExcelWriter('example.xlsx', engine='xlsxwriter')
-yourData.to_excel(writer, 'Sheet1')
-writer.save()
-
-'''
+workbook.close()
