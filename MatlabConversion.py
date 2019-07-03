@@ -15,30 +15,15 @@ sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth
 
 
-def getMin(time,inflectionList):
-    minIndex = np.argmin(square(times-inflectionList))
-    minValue = (times[minIndex]-inflectionList)**2
-    return minValue,minIndex
-
-def smooth(a):
-    # a: NumPy 1-D array containing the data to be smoothed
-    # WSZ: smoothing window size needs, which must be odd number,
-    # as in the original MATLAB implementation
-    WSZ = 5
-    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
-    r = np.arange(1,WSZ-1,2)
-    start = np.cumsum(a[:WSZ-1])[::2]/r
-    stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
-    return np.concatenate((  start , out0, stop  ))
-
 #initialization
 root = Tk()
+
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
 root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
 path = root.filename #filedialog.askopenfilename()
-path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
+#path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
 
 dataraw = pd.ExcelFile(path)
 dataraw = dataraw.parse('SYBR')
@@ -62,7 +47,7 @@ else:
 time = data[cut:,0]
 times = time * cycle
 
-data = data[cut:,1:];
+data = data[cut:,1:]
 [n,m] = data.shape
 
 #convert data
@@ -247,38 +232,31 @@ for i,item in enumerate(label):
     worksheet.write(i, 0, item)
     worksheet.write(i + 10, 0, item)
 
+col,r = (0 for i in range(2))
 for j,item in enumerate(IF1):
-    col = j + 1
-    worksheet.write(0,col,txtLabel[j])
-    worksheet.write(1,col,IF1[j]/60)
-    worksheet.write(2,col,IF2[j]/60)
-    worksheet.write(3,col,Max1[0]/60)
-    worksheet.write(4,col,Max2[0]/60)
-    worksheet.write(5,col,plateau1[0,j])
-    worksheet.write(6,col,plateau2[0,j])
-
-    worksheet.write(10,col,txtLabel[j])
-    worksheet.write(11,col,IF1[j]/60)
-    worksheet.write(12,col,IF2[j]/60)
-    worksheet.write(13,col,Max1[1]/60)
-    worksheet.write(14,col,Max2[1]/60)
-    worksheet.write(15,col,plateau1[1,j])
-    worksheet.write(16,col,plateau2[1,j])
+    col += 1
+    if j == 33:
+        col = 1
+        r = r + 10
+    worksheet.write(r,col,txtLabel[j])
+    worksheet.write(r+1,col,IF1[j]/60)
+    worksheet.write(r+2,col,IF2[j]/60)
+    worksheet.write(r+3,col,Max1[j]/60)
+    worksheet.write(r+4,col,Max2[j]/60)
+    worksheet.write(r+5,col,plateau1[0,j])
+    worksheet.write(r+6,col,plateau2[1,j])
     #worksheet.write(10,1,[IF1[1]/60,IF2[1]/60,Max1[1]/60,plateau1[1],plateau2[1]])
 
-worksheet.set_column(0,30)
+worksheet.set_column(0,40)
 
 datasheet = workbook.add_worksheet('Data.xlsx')
 for i in range(m):
     datasheet.write(0,i,txtLabel[i])
-
 col = 0
 for row, data in enumerate(times):
     datasheet.write(row, col, data)
-
 row = 0
 for col, data in enumerate(dataconv):
     datasheet.write_column(row, col, data)
-
 
 workbook.close()
