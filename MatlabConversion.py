@@ -1,29 +1,36 @@
 
 #packages
+import sys
+import os
+import xlsxwriter
 from tkinter import *
+from tkinter import filedialog
 import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-%matplotlib inline
-import xlsxwriter
-import sys
-import os
+#%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth
 
-
 #initialization
-root = Tk()
+#root = Tk()
+#root.update()
 
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
-root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
-path = root.filename #filedialog.askopenfilename()
+#root.filename =  filedialog.askopenfilename(initialdir = os.getcwd() ,title = "Select raw file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
+#path = root.filename #filedialog.askopenfilename()
 #path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
+#root.destroy()
+
+infopath = input('Raw data file : - [default: current directory]')
+infopath = os.getcwd() or infopath
 
 dataraw = pd.ExcelFile(path)
 dataraw = dataraw.parse('SYBR')
@@ -215,8 +222,10 @@ else:
 
 
 #Get labels
-#root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
-infopath ='20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
+infopath = input('Experiment info file : - [default: current directory]')
+infopath = os.getcwd() or infopath
+
+#infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
@@ -252,11 +261,11 @@ worksheet.set_column(0,40)
 datasheet = workbook.add_worksheet('Data.xlsx')
 for i in range(m):
     datasheet.write(0,i,txtLabel[i])
-col = 0
+col = 1
 for row, data in enumerate(times):
-    datasheet.write(row, col, data)
-row = 0
+    datasheet.write(row+1, col, data)
+row = 1
 for col, data in enumerate(dataconv):
-    datasheet.write_column(row, col, data)
+    datasheet.write_column(row, col+1, data)
 
 workbook.close()
