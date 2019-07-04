@@ -29,10 +29,14 @@ from assistFunctions import square,polyEquation,getMin,smooth
 #path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
 #root.destroy()
 
-infopath = input('Raw data file : - [default: current directory]')
-infopath = os.getcwd() or infopath
+path = input('Raw data file : - [default: current directory]')
+path = path or os.getcwd()
+for file in os.listdir(path):
+    if file.endswith('raw.xlsx'):
+        datapath = path + '/' + file
+        break
 
-dataraw = pd.ExcelFile(path)
+dataraw = pd.ExcelFile(datapath)
 dataraw = dataraw.parse('SYBR')
 data = dataraw.values
 
@@ -222,11 +226,10 @@ else:
 
 
 #Get labels
-infopath = input('Experiment info file : - [default: current directory]')
-infopath = infopath or os.getcwd()
-for file in os.listdir(infopath):
+
+for file in os.listdir(path):
     if file.endswith('Info.xlsx'):
-        infopath = infopath + file
+        infopath = path + '/' + file
         break
 
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
