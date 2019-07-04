@@ -29,7 +29,7 @@ from assistFunctions import square,polyEquation,getMin,smooth
 #path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
 #root.destroy()
 
-path = input('Raw data file : - [default: current directory]')
+path = input('File Location : - [default: current directory]')
 path = path or os.getcwd()
 for file in os.listdir(path):
     if file.endswith('raw.xlsx'):
@@ -244,7 +244,7 @@ for i,item in enumerate(txtLabel):
         txtLabel[i] = item + '_2'
 
 ## Write data to an excel file
-workbook = xlsxwriter.Workbook(path[:-8]+'AnalysisOutput.xlsx')
+workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
 worksheet = workbook.add_worksheet('InflectionPoints.xlsx')
 
 label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 RFU/min)','Max derivative 2 RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
@@ -271,13 +271,16 @@ for j,item in enumerate(IF1):
 worksheet.set_column(0,40)
 
 datasheet = workbook.add_worksheet('Data.xlsx')
+datasheet.write(0,0,'Cycle')
+datasheet.write(0,1,'Time (Min)')
 for i in range(m):
-    datasheet.write(0,i,txtLabel[i])
-col = 1
+    datasheet.write(0,i+2,txtLabel[i])
+col = 0
 for row, data in enumerate(times):
     datasheet.write(row+1, col, data)
+    datasheet.write(row+1,col+1,data/60)
+
 row = 1
 for col, data in enumerate(dataconv):
-    datasheet.write_column(row, col+1, data)
-
+    datasheet.write_column(row, col+2, data)
 workbook.close()
