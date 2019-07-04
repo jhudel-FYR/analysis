@@ -223,16 +223,25 @@ else:
 
 #Get labels
 infopath = input('Experiment info file : - [default: current directory]')
-infopath = os.getcwd() or infopath
+infopath = infopath or os.getcwd()
+for file in os.listdir(infopath):
+    if file.endswith('Info.xlsx'):
+        infopath = infopath + file
+        break
 
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
-txtLabel = label[:,4] + '_' + label[:,5] + '_1'
+txtLabel = label[:,4]+'_'+label[:,5]
+for i,item in enumerate(txtLabel):
+    if i<int(label.shape[0]/2):
+        txtLabel[i] = item +'_1'
+    else:
+        txtLabel[i] = item + '_2'
 
 ## Write data to an excel file
-workbook = xlsxwriter.Workbook(path[:-8]+'python_output.xlsx')
+workbook = xlsxwriter.Workbook(path[:-8]+'AnalysisOutput.xlsx')
 worksheet = workbook.add_worksheet('InflectionPoints.xlsx')
 
 label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 RFU/min)','Max derivative 2 RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
