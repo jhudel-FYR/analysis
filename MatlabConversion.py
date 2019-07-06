@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-#%matplotlib inline
+%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth
@@ -76,13 +76,12 @@ timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
 #Initialize matrices and lists
 check1,check2,x1,x2,fitrange1,fitrange2 = (np.empty((100,m)) for i in range(6))
-locs,pks,H,Pr,W = (np.empty((2,m)) for i in range(5))
+locs,pks,H,Pr,W,plateau = (np.empty((2,m)) for i in range(6))
 co1,co2 = (np.empty((3,m)) for i in range(2))
 sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
 I1start,I2start,IF1,I1e,I1,IF2,I2e,I2 = ([0]*m for i in range(8))
 d2time = np.empty((n-2,m))
 sfirst = first
-plateau1,plateau2 = (np.empty((2,m)) for i in range(2))
 
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
 for i in range(m): # 1 to m-1
@@ -201,47 +200,46 @@ for j in range(m):
     elif I1start[j]<10:
         BG[j] = dataconv[1,j]
     else:
-        #index out of bounds eror:
-        BG[j] = np.nanmean([dataconv[int(I1start[j]-i),j] for i in range(1)])
+        BG[j] = np.nanmean([dataconv[I1start[j]-i,j] for i in range(2)])
     dataconv[:,j] = dataconv[:,j]-BG[j]
 
 #find first plateau level
 for j in range(m):
     if locs[1,j] != 0:
-        plateau1[:,j] = np.nanmean([dataconv[I2start[j]-i,j] for i in range(3)])
+        #plateau1 = [np.nanmean([dataconv[I2start[j]-i,j] if locs[1,j]!=0 else 0 for i in range(3)]) for j in range(m)]
+        plateau[0,j] = np.nanmean([dataconv[I1start[j]-i,j] for i in range(3)])
+        plateau[1,j] = np.nanmean([dataconv[I2start[j]-i,j] for i in range(3)])
     else:
-        plateau1[:,j] = 0
-
+        plateau[0,j] = 0
+        plateau[1,j] = 0
 
 #Calculate the final RFU for all points
-plateau2 = dataconv #[L-1,:]
+#plateau2 = dataconv #[L-1,:]
 
 #find max first derivative at each phase
-index = [(int(j),i) for i,j in enumerate(locs[0,:])]
 Max1 = [first[int(j),i] for i,j in enumerate(locs[0,:])]
-if locs[1,1]!=0:
-    Max2 = [first[int(j),i] for i,j in enumerate(locs[1,:])]
-else:
-    Max2 = np.zeros((1,m-1))
+Max2 = [first[int(j),i] if j != 0 else 0 for i,j in enumerate(locs[1,:])]
 
-
-#Get labels
-
+#Get info file
 for file in os.listdir(path):
     if file.endswith('Info.xlsx'):
         infopath = path + '/' + file
         break
-
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
+
+#Get labels
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
+#txtLabel = label[:,11]
+split = int(label.shape[0]/2)
 txtLabel = label[:,4]+'_'+label[:,5]
 for i,item in enumerate(txtLabel):
     if i<int(label.shape[0]/2):
         txtLabel[i] = item +'_1'
     else:
         txtLabel[i] = item + '_2'
+
 
 ## Write data to an excel file
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
@@ -256,7 +254,7 @@ for i,item in enumerate(label):
 col,r = (0 for i in range(2))
 for j,item in enumerate(IF1):
     col += 1
-    if j == 33:
+    if j == split:
         col = 1
         r = r + 10
     worksheet.write(r,col,txtLabel[j])
@@ -264,8 +262,8 @@ for j,item in enumerate(IF1):
     worksheet.write(r+2,col,IF2[j]/60)
     worksheet.write(r+3,col,Max1[j]/60)
     worksheet.write(r+4,col,Max2[j]/60)
-    worksheet.write(r+5,col,plateau1[0,j])
-    worksheet.write(r+6,col,plateau2[1,j])
+    worksheet.write(r+5,col,plateau[0,j])
+    worksheet.write(r+6,col,plateau[1,j])
     #worksheet.write(10,1,[IF1[1]/60,IF2[1]/60,Max1[1]/60,plateau1[1],plateau2[1]])
 
 worksheet.set_column(0,40)
@@ -284,3 +282,5 @@ row = 1
 for col, data in enumerate(dataconv):
     datasheet.write_column(row, col+2, data)
 workbook.close()
+
+plt.plot[data[:,0]]
