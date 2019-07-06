@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-%matplotlib inline
+#%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth
@@ -120,10 +120,16 @@ for i in range(m): # 1 to m-1
         I2start[i] = 0
         I2[i] = 0
     else:
-        locs[:,i] = [l[0],l[1]]
-        pks[:,i] = [pk[0],pk[1]]
-        H[:,i] = [hi[0],hi[1]]
-        Pr[:,i] = [p[0],p[1]]
+        try:
+            locs[:,i] = [l[0],l[1]]
+            pks[:,i] = [pk[0],pk[1]]
+            H[:,i] = [hi[0],hi[1]]
+            Pr[:,i] = [p[0],p[1]]
+        except (IndexError):
+            locs[:,i] = [0,0]
+            pks[:,i] = [0,0]
+            H[:,i] = [0,0]
+            Pr[:,i] = [0,0]
 
     #take the width of the peak, make it an integer, divide in half, and
     #add two to get a region to fit over
@@ -282,5 +288,3 @@ row = 1
 for col, data in enumerate(dataconv):
     datasheet.write_column(row, col+2, data)
 workbook.close()
-
-plt.plot[data[:,0]]
