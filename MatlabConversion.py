@@ -230,7 +230,7 @@ for file in os.listdir(path):
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
-txtLabel = label[:,11]
+txtLabel = label[:,16]
 split = int(label.shape[0]/2)
 
 ## Write data to an excel file
