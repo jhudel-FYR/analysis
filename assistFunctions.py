@@ -1,8 +1,22 @@
 
 
 import numpy as np
+import xlsxwriter
 
-
+def writeSheet(workbook,name,labels,times,datas):
+    datasheet = workbook.add_worksheet(name)
+    datasheet.write(0,0,'Cycle')
+    datasheet.write(0,1,'Time (Min)')
+    for i in range(len(labels)):
+        datasheet.write(0,i+2,labels[i])
+    col = 0
+    for row, data in enumerate(times):
+        datasheet.write(row+1, col, data)
+        datasheet.write(row+1,col+1,data/60)
+    row = 1
+    for col, data in enumerate(datas):
+        datasheet.write_column(row, col+2, data)
+    return workbook
 
 def ind2sub(array_shape, ind):
     ind[ind < 0] = -1

@@ -15,26 +15,19 @@ import matplotlib.pyplot as plt
 #%matplotlib inline
 
 sys.path.append('Git/')
-from assistFunctions import square,polyEquation,getMin,smooth
+from assistFunctions import square,polyEquation,getMin,smooth,writeSheet
 
-#initialization
-#root = Tk()
-#root.update()
 
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
-#root.filename =  filedialog.askopenfilename(initialdir = os.getcwd() ,title = "Select raw file",filetypes = (("Excel files","*.xlsx"),("all files","*.*")))
-#path = root.filename #filedialog.askopenfilename()
-#path = '20190619b_UDAR_cfx96_RFU_raw.xlsx'
-#root.destroy()
-
 path = input('File Location : - [default: current directory]')
 path = path or os.getcwd()
 for file in os.listdir(path):
-    if file.endswith('raw.xlsx'):
+    if file.endswith('RFU.xlsx'):
         datapath = path + '/' + file
         break
+
 
 dataraw = pd.ExcelFile(datapath)
 dataraw = dataraw.parse('SYBR')
@@ -228,7 +221,7 @@ Max2 = [first[int(j),i] if j != 0 else 0 for i,j in enumerate(locs[1,:])]
 
 #Get info file
 for file in os.listdir(path):
-    if file.endswith('Info.xlsx'):
+    if file.endswith('INFO.xlsx'):
         infopath = path + '/' + file
         break
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
@@ -237,15 +230,8 @@ for file in os.listdir(path):
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
-#txtLabel = label[:,11]
+txtLabel = label[:,11]
 split = int(label.shape[0]/2)
-txtLabel = label[:,4]+'_'+label[:,5]
-for i,item in enumerate(txtLabel):
-    if i<int(label.shape[0]/2):
-        txtLabel[i] = item +'_1'
-    else:
-        txtLabel[i] = item + '_2'
-
 
 ## Write data to an excel file
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
@@ -274,17 +260,7 @@ for j,item in enumerate(IF1):
 
 worksheet.set_column(0,40)
 
-datasheet = workbook.add_worksheet('Data.xlsx')
-datasheet.write(0,0,'Cycle')
-datasheet.write(0,1,'Time (Min)')
-for i in range(m):
-    datasheet.write(0,i+2,txtLabel[i])
-col = 0
-for row, data in enumerate(times):
-    datasheet.write(row+1, col, data)
-    datasheet.write(row+1,col+1,data/60)
+workbook = writeSheet(workbook,'Corr RFU.xlsx',txtLabel,times,dataconv)
+workbook = writeSheet(workbook,'Raw RFU.xlsx',txtLabel,times,data)
 
-row = 1
-for col, data in enumerate(dataconv):
-    datasheet.write_column(row, col+2, data)
 workbook.close()
