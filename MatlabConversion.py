@@ -51,7 +51,7 @@ if __name__ == '__main__':
 path = root.filename
 for file in os.listdir(path):
     if file.endswith('RFU.xlsx'):
-        datapath = path + '/' + file
+        datapath = path + '\\' + file
         break
 
 dataraw = pd.ExcelFile(datapath)
@@ -247,7 +247,7 @@ Max2 = [first[int(j),i] if j != 0 else 0 for i,j in enumerate(locs[1,:])]
 #Get info file
 for file in os.listdir(path):
     if file.endswith('INFO.xlsx'):
-        infopath = path + '/' + file
+        infopath = path + '\\' + file
         break
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
 
