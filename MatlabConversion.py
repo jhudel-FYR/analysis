@@ -17,31 +17,56 @@ import matplotlib.pyplot as plt
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet
 
+def openFile():
+    global e1,e2
+    global cycle, cut
+    cycle = e1.get()
+    cut = e2.get()
+    root.filename = filedialog.askdirectory()
+
+def setDialog():
+    global e1,e2,root
+    root = Tk()
+    root.geometry("500x255")
+    root.title("Inflection Point Identification")
+    Label(root,text="Seconds per cycle : - [default=27]").pack()
+    e1 = Entry(root,width=25)
+    e1.pack()
+    Label(root,text = "Enter fluorescence error cut time : - [default=0]").pack()
+    e2 = Entry(root,width=25)
+    e2.pack()
+    return root
+
+if __name__ == '__main__':
+    %gui tk
+    root = setDialog()
+    Button(root, text = "Enter", command = openFile).pack(side=LEFT,padx=(72,0))
+    Button(root, text="Close",command = root.destroy).pack(side=RIGHT,padx=(0,72))
+    mainloop()
 
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
-path = input('File Location : - [default: current directory]')
-path = path or os.getcwd()
+#path = input('File Location : - [default: current directory]')
+path = root.filename
 for file in os.listdir(path):
     if file.endswith('RFU.xlsx'):
         datapath = path + '/' + file
         break
-
 
 dataraw = pd.ExcelFile(datapath)
 dataraw = dataraw.parse('SYBR')
 data = dataraw.values
 
 #cycle time - update this if the time for one cycle on the qPCR machine changes
-cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
+#cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
 if len(cycle) == 0 :
     cycle = 27
 else:
     cycle = float(cycle)
 
 #amount to cut due change in fluorescence during heating
-cut = input('Fluorescence error cut time : - [default:0] \n')
+#cut = input('Fluorescence error cut time : - [default:0] \n')
 if len(cut) == 0:
     cut = 0
 else:
@@ -235,9 +260,9 @@ split = int(label.shape[0]/2)
 
 ## Write data to an excel file
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
-worksheet = workbook.add_worksheet('InflectionPoints.xlsx')
 
-label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 RFU/min)','Max derivative 2 RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
+worksheet = workbook.add_worksheet('Inflections.xlsx')
+label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
 
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
@@ -256,9 +281,34 @@ for j,item in enumerate(IF1):
     worksheet.write(r+4,col,Max2[j]/60)
     worksheet.write(r+5,col,plateau[0,j])
     worksheet.write(r+6,col,plateau[1,j])
-    #worksheet.write(10,1,[IF1[1]/60,IF2[1]/60,Max1[1]/60,plateau1[1],plateau2[1]])
+worksheet.set_column(0,0,25)
 
-worksheet.set_column(0,40)
+
+
+worksheet = workbook.add_worksheet('Mean Inflections.xlsx')
+label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std/min)','Inflection 2 (std/min)',
+'Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)','Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)']
+
+for i,item in enumerate(label):
+    worksheet.write(i, 0, item)
+    worksheet.write(i + 10, 0, item)
+col,r = (0 for i in range(2))
+for j,item in enumerate(IF1):
+    if j == split:
+        col = 0
+        r = r + 10
+    if j % 3 == 0:
+        col += 1
+        worksheet.write(r,col,txtLabel[j])
+        worksheet.write(r+1,col,np.nanmean([IF1[j-i]/60 for i in range(3)]))
+        worksheet.write(r+2,col,np.nanstd([IF1[j-i]/60 for i in range(3)]))
+        worksheet.write(r+3,col,np.nanmean([IF2[j-i]/60 for i in range(3)]))
+        worksheet.write(r+4,col,np.nanstd([IF2[j-i]/60 for i in range(3)]))
+        worksheet.write(r+5,col,np.nanmean([Max1[j-i]/60 for i in range(3)]))
+        worksheet.write(r+6,col,np.nanstd([Max1[j-i]/60 for i in range(3)]))
+        worksheet.write(r+7,col,np.nanmean([Max2[j-i]/60 for i in range(3)]))
+        worksheet.write(r+8,col,np.nanstd([Max2[j-i]/60 for i in range(3)]))
+worksheet.set_column(0,0,25)
 
 workbook = writeSheet(workbook,'Corr RFU.xlsx',txtLabel,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU.xlsx',txtLabel,times,data)

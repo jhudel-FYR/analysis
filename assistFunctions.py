@@ -3,6 +3,7 @@
 import numpy as np
 import xlsxwriter
 
+
 def writeSheet(workbook,name,labels,times,datas):
     datasheet = workbook.add_worksheet(name)
     datasheet.write(0,0,'Cycle')
