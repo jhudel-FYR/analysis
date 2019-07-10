@@ -47,11 +47,11 @@ if __name__ == '__main__':
 # Load data and define RFU/time columns
 #load data, with cycles in first column, data in remaining columns, any
 #non-numerical data is ignored by the program (we extract numerical data num)
-#path = input('File Location : - [default: current directory]')
 path = root.filename
+#path = input('File Location : - [default: current directory]')
 for file in os.listdir(path):
     if file.endswith('RFU.xlsx'):
-        datapath = path + '/' + file
+        datapath = os.path.join(path,file)
         break
 
 dataraw = pd.ExcelFile(datapath)
@@ -210,11 +210,8 @@ for i in range(m): # 1 to m-1
                 I1e[i] = 1
                 break
 
-
     #find where the first rise begins, index in the data
     Y,I1start[i] = getMin(times,timediff[I1e[i]])
-
-    #clear mins test pk l hi p xrange1 xrange2
 
 #background correct data
 BG = [0]*m
@@ -238,7 +235,6 @@ for j in range(m):
         plateau[1,j] = 0
 
 #Calculate the final RFU for all points
-#plateau2 = dataconv #[L-1,:]
 
 #find max first derivative at each phase
 Max1 = [first[int(j),i] for i,j in enumerate(locs[0,:])]
@@ -247,7 +243,7 @@ Max2 = [first[int(j),i] if j != 0 else 0 for i,j in enumerate(locs[1,:])]
 #Get info file
 for file in os.listdir(path):
     if file.endswith('INFO.xlsx'):
-        infopath = path + '/' + file
+        infopath = os.path.join(path,file)
         break
 #infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
 
