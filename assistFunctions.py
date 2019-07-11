@@ -1,8 +1,15 @@
 
-
+from scipy.signal import find_peaks
 import numpy as np
 import xlsxwriter
 
+
+def getTwoPeaks(data):
+    for width in range(2,8):
+        peaks,properties = find_peaks(data, prominence=15,width=width)
+        if len(peaks)==2:
+            return peaks,properties
+    return [0,0]
 
 def writeSheet(workbook,name,labels,times,datas):
     datasheet = workbook.add_worksheet(name)
