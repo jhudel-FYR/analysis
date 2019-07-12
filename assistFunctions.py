@@ -22,7 +22,7 @@ def writeSheet(workbook,name,labels,times,datas):
     for row, data in enumerate(times):
         datasheet.write(row+1, col, data)
         datasheet.write(row+1,col+1,data/60)
-    for col, data in enumerate(dataconv):
+    for col, data in enumerate(datas):
         for row,cell in enumerate(data):
             datasheet.write(row+1, col+2, cell)
     return workbook

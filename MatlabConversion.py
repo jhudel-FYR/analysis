@@ -2,7 +2,9 @@
 #packages
 import sys
 import os
+import xlwt
 import xlrd
+import xlsxwriter
 from tkinter import *
 from tkinter import filedialog
 import pandas as pd
@@ -67,9 +69,9 @@ for j in range(1,sheet.ncols):
 wb.release_resources()
 del wb
 
-dataraw = pd.ExcelFile(datapath)
-dataraw = dataraw.parse('SYBR')
-ddata = dataraw.values
+# dataraw = pd.ExcelFile(datapath)
+# dataraw = dataraw.parse('SYBR')
+# ddata = dataraw.values
 
 #cycle time - update this if the time for one cycle on the qPCR machine changes
 #cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
@@ -119,7 +121,7 @@ for i in range(m): # 1 to m-1
     dfirst[:,i] = np.gradient(first[:,i])
     d2time = np.diff(timediff)
     first[:,i] = smooth(first[:,i]) #another smoothing'''
-plt.plot(data[:,i])
+
     #find the first two peaks, they need to exceed a min peak height and width
     peaks,properties = getTwoPeaks(first[:,i])
     if peaks.any() == 0:
@@ -215,10 +217,13 @@ txtLabel = label[:,16]
 split = int(label.shape[0]/2)
 
 ## Write data to an excel file
-workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
+workbook = xlwt.Workbook()
 
-worksheet = workbook.add_worksheet('Inflections.xlsx')
+worksheet = workbook.add_sheet('Inflections',cell_overwrite_ok=True)
 label = [' ','Inflection 1 (min)','Inflection 2 (min)','RFU of Inflection 1','RFU of Inflection 2','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
+
+# first_col = worksheet.col(0)
+# first_col.width = 25
 
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
@@ -236,9 +241,9 @@ for j,item in enumerate(IF[0,:]):
         worksheet.write(r+3+k,col,IRFU[k,j])
         worksheet.write(r+5+k,col,Max[k,j]/60)
         worksheet.write(r+7+k,col,plateau[k,j])
-worksheet.set_column(0,0,25)
 
-worksheet = workbook.add_worksheet('Mean Inflections.xlsx')
+
+worksheet = workbook.add_sheet('Mean Inflections',cell_overwrite_ok=True)
 label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std/min)','Inflection 2 (std/min)',
 'Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)','Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)']
 
@@ -258,10 +263,8 @@ for j,item in enumerate(IF[0,:]):
             worksheet.write(r+2+(2*k),col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
             worksheet.write(r+5+(2*k),col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
             worksheet.write(r+6+(2*k),col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
-worksheet.set_column(0,0,25)
 
 
-workbook = writeSheet(workbook,'Corr RFU.xlsx',txtLabel,times,dataconv)
-workbook = writeSheet(workbook,'Raw RFU.xlsx',txtLabel,times,data)
-
-workbook.close()
+workbook = writeSheet(workbook,'Corr RFU',txtLabel,times,dataconv)
+workbook = writeSheet(workbook,'Raw RFU',txtLabel,times,data)
+workbook.save(infopath[:-8]+'_AnalysisOutput.xls')
