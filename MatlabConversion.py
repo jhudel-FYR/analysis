@@ -2,7 +2,7 @@
 #packages
 import sys
 import os
-import xlsxwriter
+import xlrd
 from tkinter import *
 from tkinter import filedialog
 import pandas as pd
@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-#%matplotlib inline
+%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks
@@ -40,8 +40,8 @@ def setDialog():
 if __name__ == '__main__':
     %gui tk
     root = setDialog()
-    Button(root, text = "Get Folder", command = openFile).pack(side=LEFT,padx=(72,0))
-    Button(root, text="Create Output File",command = root.destroy).pack(side=RIGHT,padx=(0,72))
+    Button(root, text = "Get Folder", command = openFile).pack()
+    Button(root, text="Create Output File",command = root.destroy).pack()
     mainloop()
 
 # Load data and define RFU/time columns
@@ -58,9 +58,18 @@ for file in os.listdir(path):
         datapath = os.path.join(path,file)
         break
 
+wb = xlrd.open_workbook(datapath)
+sheet = wb.sheet_by_name('SYBR')
+data = np.empty((sheet.nrows-1,sheet.ncols-1))
+for j in range(1,sheet.ncols):
+   for i in range(1,sheet.nrows):
+       data[i-1,j-1] = sheet.cell_value(i,j)
+wb.release_resources()
+del wb
+
 dataraw = pd.ExcelFile(datapath)
 dataraw = dataraw.parse('SYBR')
-data = dataraw.values
+ddata = dataraw.values
 
 #cycle time - update this if the time for one cycle on the qPCR machine changes
 #cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
@@ -99,7 +108,7 @@ timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 #Initialize matrices and lists
 polyDegree = 2
 W = np.empty(2)
-locs,pks,H,Pr,plateau,Istart,IF,Ie,I,Max = (np.empty((2,m)) for i in range(10))
+locs,pks,H,Pr,plateau,Istart,IF,Ie,I,Max,IRFU = (np.empty((2,m)) for i in range(11))
 sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
 d2time = np.empty((n-2,m))
 
@@ -110,10 +119,10 @@ for i in range(m): # 1 to m-1
     dfirst[:,i] = np.gradient(first[:,i])
     d2time = np.diff(timediff)
     first[:,i] = smooth(first[:,i]) #another smoothing'''
-
+plt.plot(data[:,i])
     #find the first two peaks, they need to exceed a min peak height and width
     peaks,properties = getTwoPeaks(first[:,i])
-    if peaks.all() == 0:
+    if peaks.any() == 0:
         print('Two peaks could not be found in well:',i+1)
         continue
     locs[:,i] = peaks
@@ -128,17 +137,22 @@ for i in range(m): # 1 to m-1
     #fit the first and second peaks using the location of the peak
     #(inflection point) and fitting over the peak half width.
     #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
+
     for k in range(2):
         xStart = np.maximum(int(locs[k,i]-W[k]),1)
         xEnd = int(locs[k,i]+W[k])
         xRange = xEnd-xStart
-        #retrieve the fitting coefficients, fitd(0) = a, fitd(1) = b, fitd(2) = c for peak 1
+
+        #fit a polynomial to the first derivative and retrieve the zero
         fitd = np.polyfit(timediff[xStart:xEnd],first[xStart:xEnd,i],polyDegree)
         check =  polyEquation(fitd,timediff[xStart:xEnd])
         fitrange = first[xStart:xEnd,i]
-
-        #inflection point
         IF[k,i] = -fitd[1]/(2*fitd[0])
+
+        #retrieve the calculated RFU at the inflection point:
+        fito = np.polyfit(timediff[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
+        IRFU[k,i] = polyEquation(fito,[IF[k,i]])[0]
+
 
         #find the closest time index in the data (times) to the inflection points
         Y,I[k,i] = getMin(times,IF[k,i])
@@ -204,7 +218,7 @@ split = int(label.shape[0]/2)
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
 
 worksheet = workbook.add_worksheet('Inflections.xlsx')
-label = [' ','Inflection 1 (min)','Inflection 2 (min)','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
+label = [' ','Inflection 1 (min)','Inflection 2 (min)','RFU of Inflection 1','RFU of Inflection 2','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
 
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
@@ -219,10 +233,10 @@ for j,item in enumerate(IF[0,:]):
     for k in range(2):
         worksheet.write(r,col,txtLabel[j])
         worksheet.write(r+1+k,col,IF[k,j]/60)
-        worksheet.write(r+3+k,col,Max[k,j]/60)
-        worksheet.write(r+5+k,col,plateau[k,j])
+        worksheet.write(r+3+k,col,IRFU[k,j])
+        worksheet.write(r+5+k,col,Max[k,j]/60)
+        worksheet.write(r+7+k,col,plateau[k,j])
 worksheet.set_column(0,0,25)
-
 
 worksheet = workbook.add_worksheet('Mean Inflections.xlsx')
 label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std/min)','Inflection 2 (std/min)',

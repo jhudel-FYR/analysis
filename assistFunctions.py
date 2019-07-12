@@ -12,7 +12,7 @@ def getTwoPeaks(data):
     return [0,0]
 
 def writeSheet(workbook,name,labels,times,datas):
-    datasheet = workbook.add_worksheet(name)
+    datasheet = workbook.add_sheet(name,cell_overwrite_ok=True)
     datasheet.write(0,0,'Cycle')
     datasheet.write(0,1,'Time (Min)')
     for i in range(len(labels)):
@@ -22,9 +22,9 @@ def writeSheet(workbook,name,labels,times,datas):
     for row, data in enumerate(times):
         datasheet.write(row+1, col, data)
         datasheet.write(row+1,col+1,data/60)
-    row = 1
-    for col, data in enumerate(datas):
-        datasheet.write_column(row, col+2, data)
+    for col, data in enumerate(dataconv):
+        for row,cell in enumerate(data):
+            datasheet.write(row+1, col+2, cell)
     return workbook
 
 def ind2sub(array_shape, ind):
