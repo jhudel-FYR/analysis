@@ -40,7 +40,7 @@ def setDialog():
 if __name__ == '__main__':
     %gui tk
     root = setDialog()
-    Button(root, text = "Enter", command = openFile).pack(side=LEFT,padx=(72,0))
+    Button(root, text = "Get Folder", command = openFile).pack(side=LEFT,padx=(72,0))
     Button(root, text="Create Output File",command = root.destroy).pack(side=RIGHT,padx=(0,72))
     mainloop()
 
