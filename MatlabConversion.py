@@ -14,7 +14,6 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks
@@ -40,7 +39,6 @@ def setDialog():
     return root
 
 if __name__ == '__main__':
-    #%gui tk
     root = setDialog()
     Button(root, text = "Get Folder", command = openFile).pack()
     Button(root, text="Create Output File",command = root.destroy).pack()
@@ -52,9 +50,6 @@ if __name__ == '__main__':
 path = root.filename
 
 #path = '/Users/KnownWilderness/2019/Coding/Fyr'
-# cycle = 27
-# cut = 0
-#path = input('File Location : - [default: current directory]')
 for file in os.listdir(path):
     if file.endswith('RFU.xlsx'):
         datapath = os.path.join(path,file)
@@ -74,14 +69,12 @@ del wb
 # ddata = dataraw.values
 
 #cycle time - update this if the time for one cycle on the qPCR machine changes
-#cycle = input('Seconds per cycle : - [default:27] \n') #seconds/cycle GUI THIS!
 if len(cycle) == 0 :
     cycle = 27
 else:
     cycle = float(cycle)
 
 #amount to cut due change in fluorescence during heating
-#cut = input('Fluorescence error cut time : - [default:0] \n')
 if len(cut) == 0:
     cut = 0
 else:
@@ -110,37 +103,42 @@ timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 #Initialize matrices and lists
 polyDegree = 2
 W = np.empty(2)
-locs,pks,H,Pr,plateau,Istart,IF,Ie,I,Max,IRFU = (np.empty((2,m)) for i in range(11))
+locs,pks,H,Pr,plateau = (np.empty((2,m)) for i in range(5))
+Istart,IF,Ie,I,Max,IRFU = (np.empty((4,m)) for i in range(6))
 sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
 d2time = np.empty((n-2,m))
 
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
 for i in range(m): # 1 to m-1
     #sdata[:,i] = smooth(data[:,i])
-    first[:,i] = np.gradient(data[:,i])
+    first[:,i] = smooth(np.gradient(data[:,i]))
     dfirst[:,i] = np.gradient(first[:,i])
     d2time = np.diff(timediff)
-    first[:,i] = smooth(first[:,i]) #another smoothing'''
 
-    #find the first two peaks, they need to exceed a min peak height and width
-    peaks,properties = getTwoPeaks(first[:,i])
-    if peaks.any() == 0:
-        print('Two peaks could not be found in well:',i+1)
-        continue
-    locs[:,i] = peaks
-    pks[:,i] = [first[x,i] for x in peaks]
-    H[:,i] = properties["widths"]
-    Pr[:,i] = properties["prominences"]
+    for ip in range(4):
+        if ip<2: peaks,properties = getTwoPeaks(first[:,i])
+        elif ip>=2:peaks,properties = getTwoPeaks(abs(dfirst[:,i]))
 
-    #take the width of the peak, make it an integer, divide in half, and
-    #add two to get a region to fit over
-    W[:] = np.maximum(np.round(H[:,i],0)/2,4) #this is the half width, no smaller than 4 units
+        #find the first two peaks, they need to exceed a min peak height and width
+        #peaks,properties = getTwoPeaks(first[:,i])
 
-    #fit the first and second peaks using the location of the peak
-    #(inflection point) and fitting over the peak half width.
-    #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
+        if peaks[0]== 0 and peaks[1] == 0:
+            print('Peaks could not be found in well:',i+1, 'Derivative:',ip)
+            continue
+        k = ip % 2
+        locs[:,i] = peaks
+        pks[:,i] = [first[x,i] for x in peaks]
+        H[:,i] = properties["widths"]
+        Pr[:,i] = properties["prominences"]
 
-    for k in range(2):
+        #take the width of the peak, make it an integer, divide in half, and
+        #add two to get a region to fit over
+        W[:] = np.maximum(np.round(H[:,i],0)/2,4) #this is the half width, no smaller than 4 units
+
+        #fit the first and second peaks using the location of the peak
+        #(inflection point) and fitting over the peak half width.
+        #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
+
         xStart = np.maximum(int(locs[k,i]-W[k]),1)
         xEnd = int(locs[k,i]+W[k])
         xRange = xEnd-xStart
@@ -149,38 +147,36 @@ for i in range(m): # 1 to m-1
         fitd = np.polyfit(timediff[xStart:xEnd],first[xStart:xEnd,i],polyDegree)
         check =  polyEquation(fitd,timediff[xStart:xEnd])
         fitrange = first[xStart:xEnd,i]
-        IF[k,i] = -fitd[1]/(2*fitd[0])
+        IF[ip,i] = -fitd[1]/(2*fitd[0])
 
         #retrieve the calculated RFU at the inflection point:
-        fito = np.polyfit(timediff[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
-        IRFU[k,i] = polyEquation(fito,[IF[k,i]])[0]
-
+        fito = np.polyfit(times[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
+        IRFU[ip,i] = polyEquation(fito,[IF[ip,i]])[0]
 
         #find the closest time index in the data (times) to the inflection points
-        Y,I[k,i] = getMin(times,IF[k,i])
+        Y,I[ip,i] = getMin(times,IF[ip,i])
 
         #find where the second rise begins in the first derivative data
-        Ie[k,i] = locs[0,i]-W[0]  #start below the second peak in the smoothed first derivative, find where the rise begins
-        while first[int(Ie[k,i]),i]>first[int(Ie[k,i]-1),i] and first[int(Ie[k,i])-1,i]>first[int(Ie[k,i])-2,i] and first[int(Ie[k,i]),i]>0 and first[int(Ie[k,i])-1,i]>0:
-            Ie[k,i] -= -1
+        Ie[ip,i] = locs[0,i]-W[0]  #start below the second peak in the smoothed first derivative, find where the rise begins
+        while first[int(Ie[ip,i]),i]>first[int(Ie[ip,i]-1),i] and first[int(Ie[ip,i])-1,i]>first[int(Ie[ip,i])-2,i] and first[int(Ie[ip,i]),i]>0 and first[int(Ie[ip,i])-1,i]>0:
+            Ie[ip,i] -= -1
 
-
-        Y,Istart[k,i] = getMin(times,timediff[int(Ie[k,i])])
+        Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
         #find the best place to start fitting data on the first rise, in first
         #derivative indices by looking for where the first derivative stops increasing
-        Ie[k,i] = locs[0,i]
-        if Ie[k,i]>2:
-            Ie[k,i] = int(Ie[k,i] - np.floor(W[0]/2))
-            id = int(Ie[k,i])
+        Ie[ip,i] = locs[0,i]
+        if Ie[ip,i]>2:
+            Ie[ip,i] = int(Ie[ip,i] - np.floor(W[0]/2))
+            id = int(Ie[ip,i])
             while id>2 and first[id,i]>first[id-1,i] and first[id-1,i]>first[id-2,i] and first[id,i]>0 and first[id-1,i]>0:
-                Ie[k,i] = Ie[k,i]-1
-                if Ie[k,i] == 2:
-                    Ie[k,i] = 1
+                Ie[ip,i] = Ie[ip,i]-1
+                if Ie[ip,i] == 2:
+                    Ie[ip,i] = 1
                     break
 
         #find where the first rise begins, index in the data
-        Y,Istart[k,i] = getMin(times,timediff[int(Ie[k,i])])
+        Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
         #find max first derivative at each phase
         Max[k,i] = first[int(locs[k,i]),i]
@@ -193,10 +189,10 @@ for j in range(m):
     elif Istart[0,j]<10:
         BG[j] = dataconv[1,j]
     else:
-        BG[j] = np.nanmean([dataconv[Istart[0,j]-i,j] for i in range(2)])
+        BG[j] = np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
     dataconv[:,j] = dataconv[:,j]-BG[j]
 
-#find first plateau level
+#find first plateau level - not being used currently
 for j in range(m):
     for k in range(2):
         plateau[k,j] = np.nanmean([dataconv[int(Istart[k,j])-i,j] for i in range(2)])

@@ -5,11 +5,12 @@ import xlsxwriter
 
 
 def getTwoPeaks(data):
-    for width in range(2,8):
-        peaks,properties = find_peaks(data, prominence=15,width=width)
-        if len(peaks)==2:
-            return peaks,properties
-    return [0,0]
+    for width in range(5,1,-1):
+        for proms in range(50,20,-1):
+            peaks,properties = find_peaks(data, prominence=proms,width=width)
+            if len(peaks)==2:
+                return peaks,properties
+    return [[0,0],0]
 
 def writeSheet(workbook,name,labels,times,datas):
     datasheet = workbook.add_sheet(name,cell_overwrite_ok=True)
