@@ -49,7 +49,9 @@ if __name__ == '__main__':
 #non-numerical data is ignored by the program (we extract numerical data num)
 path = root.filename
 
-#path = '/Users/KnownWilderness/2019/Coding/Fyr'
+# path = '/Users/KnownWilderness/2019/Coding/Fyr'
+# cycle = 27
+# cut = 0
 for file in os.listdir(path):
     if file.endswith('RFU.xlsx'):
         datapath = os.path.join(path,file)
@@ -209,8 +211,9 @@ for file in os.listdir(path):
 labelraw = pd.ExcelFile(infopath)
 labelraw = labelraw.parse('0')
 label = labelraw.values
-txtLabel = label[:,16]
+txtLabel = label[:,17]
 split = int(label.shape[0]/2)
+
 
 ## Write data to an excel file
 workbook = xlwt.Workbook()
