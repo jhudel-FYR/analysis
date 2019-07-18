@@ -27,7 +27,6 @@ def writeSheet(workbook,name,labels,times,datas):
     for col in range(datas.shape[1]):
         for row in range(datas.shape[0]):
             datasheet.write(row+1, col+2, datas[row,col])
-        return workbook
     return workbook
 
 def ind2sub(array_shape, ind):

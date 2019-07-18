@@ -2,6 +2,7 @@
 #packages
 import sys
 import os
+import copy
 import xlrd
 import xlsxwriter
 from tkinter import *
@@ -13,6 +14,7 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+#from openpyxl import Workbook
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks
@@ -91,8 +93,7 @@ data = data[cut:,1:]
 #convert data
 L = data.shape[0]
 # conv = cref/data(L,1);
-dataconv = data
-
+dataconv = copy.deepcopy(data)
 
 #delta time
 dtime = np.diff(time)
@@ -185,18 +186,18 @@ for i in range(m): # 1 to m-1
 #background correct data
 BG = [0]*m
 for j in range(m):
-    if Istart[0,j] == 0:
+    if Istart[0,j] < 2:
         BG[j] = dataconv[0,j]
     elif Istart[0,j]<10:
         BG[j] = dataconv[1,j]
     else:
-        BG[j] = np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
-    dataconv[:,j] = dataconv[:,j]-BG[j]
+        BG[j] =  np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
+    dataconv[:,j] = [i - BG[j] for i in data[:,j]]
 
-#find first plateau level - not being used currently
-for j in range(m):
-    for k in range(2):
-        plateau[k,j] = np.nanmean([dataconv[int(Istart[k,j])-i,j] for i in range(2)])
+# #find first plateau level - not being used currently
+# for j in range(m):
+#     for k in range(2):
+#         plateau[k,j] = np.nanmean([dataconv[int(Istart[k,j])-i,j] for i in range(2)])
 
 
 #Get info file
@@ -216,11 +217,8 @@ split = int(label.shape[0]/2)
 ## Write data to an excel file
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
 
-worksheet = workbook.add_worksheet('Inflections.xlsx')
-label = [' ','Inflection 1 (min)','Inflection 2 (min)','RFU of Inflection 1','RFU of Inflection 2','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)','Plateau 1 (RFU)','Plateau 2 (RFU)']
-
-# first_col = worksheet.col(0)
-# first_col.width = 25
+worksheet = workbook.add_worksheet('Inflections')
+label = [' ','Inflection 1 (min)','Inflection 2 (min)','RFU of Inflection 1','RFU of Inflection 2','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)']
 
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
@@ -237,12 +235,12 @@ for j,item in enumerate(IF[0,:]):
         worksheet.write(r+1+k,col,IF[k,j]/60)
         worksheet.write(r+3+k,col,IRFU[k,j])
         worksheet.write(r+5+k,col,Max[k,j]/60)
-        worksheet.write(r+7+k,col,plateau[k,j])
+        #worksheet.write(r+7+k,col,plateau[k,j])
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
 
-worksheet = workbook.add_worksheet('Mean Inflections.xlsx')
+worksheet = workbook.add_worksheet('Mean Inflections')
 label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std/min)','Inflection 2 (std/min)',
 'Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)','Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)']
 
@@ -264,6 +262,6 @@ for j,item in enumerate(IF[0,:]):
             worksheet.write(r+6+(2*k),col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
 worksheet.set_column(0, 0, width)
 
-workbook = writeSheet(workbook,'Corr RFU.xlsx',txtLabel,times,dataconv)
-workbook = writeSheet(workbook,'Raw RFU.xlsx',txtLabel,times,data)
+workbook = writeSheet(workbook,'Corr RFU',txtLabel,times,dataconv)
+workbook = writeSheet(workbook,'Raw RFU',txtLabel,times,data)
 workbook.close()
