@@ -247,6 +247,7 @@ label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
     worksheet.write(i + 10, 0, item)
+
 col,r = (0 for i in range(2))
 for j,item in enumerate(IF[0,:]):
     if j == split:

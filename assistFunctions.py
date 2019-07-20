@@ -18,7 +18,6 @@ def writeSheet(workbook,name,labels,times,datas):
     datasheet.write(0,1,'Time (Min)')
     for i in range(len(labels)):
         datasheet.write(0,i+2,labels[i])
-        datasheet.write(0,i+2+len(labels),labels[i])
     col = 0
     for row, data in enumerate(times):
         datasheet.write(row+1, col, data)
