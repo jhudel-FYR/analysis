@@ -44,6 +44,14 @@ def polyEquation(coef,listx):
     bx = [coef[1]*x for x in listx]
     return [(a+b+coef[2]) for (a,b) in zip(ax2,bx)]
 
+def stillIncreasing(id,line):
+    keepMoving = True
+    if line[id]<=line[id-1]: keepMoving = False
+    elif line[id-1]<=line[id-2]: keepMoving = False
+    elif line[id]<=0: keepMoving = False
+    elif line[id-1]<=0: keepMoving = False
+    return keepMoving
+
 def getMin(time,inflectionList):
     minIndex = np.argmin(square(time-inflectionList))
     minValue = (time[minIndex]-inflectionList)**2
@@ -120,3 +128,23 @@ if nope:
         plt.ylabel('RFU')
         plt.xlabel('Time (s)')
     plt.show()
+
+
+
+    for well in range(0,9,3):
+        plt.plot(data[40:100,well])
+        for i in range(4):
+            plt.plot(I[i,well]-40,IRFU[i,well],'x')
+        plt.plot()
+
+    #testing four inflection points
+    xs = 60
+    x = [t/27 for t in times[xs:]]
+    for well in range(0,9,3):
+        plt.scatter([x/27 for x in IF[:,well]],IRFU[:,well])
+        #plt.plot(x,first[:,well]*10)
+        plt.plot(x,dfirst[xs:,well]*20 + 5000)
+        plt.plot(x,data[xs:,well])
+        for i in range(1,4):
+            plt.axvline(IF[i,well]/27)
+        plt.plot()

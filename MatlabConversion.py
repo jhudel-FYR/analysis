@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 #from openpyxl import Workbook
 
 sys.path.append('Git/')
-from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks
+from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing
 
 def openFile():
     global e1,e2
@@ -37,6 +37,7 @@ def setDialog():
     Label(root,text = "Enter fluorescence error cut time : - [default=0]").pack()
     e2 = Entry(root,width=25)
     e2.pack()
+    Label(root,text = "Leaving the inputs blank will result in the default values being used.").pack()
     return root
 
 if __name__ == '__main__':
@@ -107,81 +108,80 @@ polyDegree = 2
 W = np.empty(2)
 locs,pks,H,Pr,plateau = (np.empty((2,m)) for i in range(5))
 Istart,IF,Ie,I,Max,IRFU = (np.empty((4,m)) for i in range(6))
-sdata,first,dfirst = (np.empty((n,m)) for i in range(3))
+sdata,first,second = (np.empty((n,m)) for i in range(3))
 d2time = np.empty((n-2,m))
+dLine = []
 
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
 for i in range(m): # 1 to m-1
-    #sdata[:,i] = smooth(data[:,i])
+    ip = 0
     first[:,i] = smooth(np.gradient(data[:,i]))
-    dfirst[:,i] = np.gradient(first[:,i])
+    second[:,i] = np.gradient(first[:,i])
     d2time = np.diff(timediff)
 
-    for ip in range(4):
-        if ip<2: peaks,properties = getTwoPeaks(first[:,i])
-        elif ip>=2:peaks,properties = getTwoPeaks(abs(dfirst[:,i]))
+    for derivative in range(1,3):
+        if derivative == 1: dLine = first[:,i]
+        elif derivative == 2: dLine = abs(second[:,i])
 
         #find the first two peaks, they need to exceed a min peak height and width
         #peaks,properties = getTwoPeaks(first[:,i])
-
+        peaks,properties = getTwoPeaks(abs(dLine[:]))
         if peaks[0]== 0 and peaks[1] == 0:
-            print('Peaks could not be found in well:',i+1, 'Derivative:',ip)
+            print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             continue
-        k = ip % 2
         locs[:,i] = peaks
-        pks[:,i] = [first[x,i] for x in peaks]
-        H[:,i] = properties["widths"]
+        pks[:,i] = [dLine[x] for x in peaks]
         Pr[:,i] = properties["prominences"]
 
         #take the width of the peak, make it an integer, divide in half, and
         #add two to get a region to fit over
-        W[:] = np.maximum(np.round(H[:,i],0)/2,4) #this is the half width, no smaller than 4 units
+        W[:] = np.maximum(properties["widths"]/2,4) #this is the half width, no smaller than 4 units
 
-        #fit the first and second peaks using the location of the peak
-        #(inflection point) and fitting over the peak half width.
-        #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
+        for k in range(2):
+            #fit the first and second peaks using the location of the peak
+            #(inflection point) and fitting over the peak half width.
+            #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
+            xStart = np.maximum(int(locs[k,i]-W[k]),1)
+            xEnd = int(locs[k,i]+W[k])
+            xRange = xEnd-xStart
 
-        xStart = np.maximum(int(locs[k,i]-W[k]),1)
-        xEnd = int(locs[k,i]+W[k])
-        xRange = xEnd-xStart
+            #fit a polynomial to the first derivative and retrieve the zero
+            fitd = np.polyfit(timediff[xStart:xEnd],dLine[xStart:xEnd],polyDegree)
+            check =  polyEquation(fitd,timediff[xStart:xEnd])
+            fitrange = dLine[xStart:xEnd]
+            IF[ip,i] = -fitd[1]/(2*fitd[0])
 
-        #fit a polynomial to the first derivative and retrieve the zero
-        fitd = np.polyfit(timediff[xStart:xEnd],first[xStart:xEnd,i],polyDegree)
-        check =  polyEquation(fitd,timediff[xStart:xEnd])
-        fitrange = first[xStart:xEnd,i]
-        IF[ip,i] = -fitd[1]/(2*fitd[0])
+            #retrieve the calculated RFU at the inflection point:
+            fito = np.polyfit(times[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
+            IRFU[ip,i] = polyEquation(fito,[IF[ip,i]])[0]
 
-        #retrieve the calculated RFU at the inflection point:
-        fito = np.polyfit(times[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
-        IRFU[ip,i] = polyEquation(fito,[IF[ip,i]])[0]
+            #find the closest time index in the data (times) to the inflection points
+            Y,I[ip,i] = getMin(times,IF[ip,i])
 
-        #find the closest time index in the data (times) to the inflection points
-        Y,I[ip,i] = getMin(times,IF[ip,i])
+            #find where the second rise begins in the first derivative data
+            Ie[ip,i] = xStart  #start below the second peak in the smoothed first derivative, find where the rise begins
+            while stillIncreasing(int(Ie[ip,i]),dLine):
+                Ie[ip,i] -= -1
 
-        #find where the second rise begins in the first derivative data
-        Ie[ip,i] = locs[0,i]-W[0]  #start below the second peak in the smoothed first derivative, find where the rise begins
-        while first[int(Ie[ip,i]),i]>first[int(Ie[ip,i]-1),i] and first[int(Ie[ip,i])-1,i]>first[int(Ie[ip,i])-2,i] and first[int(Ie[ip,i]),i]>0 and first[int(Ie[ip,i])-1,i]>0:
-            Ie[ip,i] -= -1
+            Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
-        Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
+            #find the best place to start fitting data on the first rise, in first
+            #derivative indices by looking for where the first derivative stops increasing
+            Ie[ip,i] = int(locs[k,i])
+            if Ie[ip,i]>2:
+                Ie[ip,i] = int(Ie[ip,i] - np.floor(W[k]/2))
+                id = int(Ie[ip,i])
+                while stillIncreasing(id,dLine[:]) and id>=2:
+                    Ie[ip,i] = Ie[ip,i]-1
+                    if Ie[ip,i] == 2:
+                        break
 
-        #find the best place to start fitting data on the first rise, in first
-        #derivative indices by looking for where the first derivative stops increasing
-        Ie[ip,i] = locs[0,i]
-        if Ie[ip,i]>2:
-            Ie[ip,i] = int(Ie[ip,i] - np.floor(W[0]/2))
-            id = int(Ie[ip,i])
-            while id>2 and first[id,i]>first[id-1,i] and first[id-1,i]>first[id-2,i] and first[id,i]>0 and first[id-1,i]>0:
-                Ie[ip,i] = Ie[ip,i]-1
-                if Ie[ip,i] == 2:
-                    Ie[ip,i] = 1
-                    break
+            #find where the first rise begins, index in the data
+            Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
-        #find where the first rise begins, index in the data
-        Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
-
-        #find max first derivative at each phase
-        Max[k,i] = first[int(locs[k,i]),i]
+            #find max first derivative at each phase
+            Max[k,i] = first[int(locs[k,i]),i]
+            ip += 1
 
 #background correct data
 BG = [0]*m
@@ -218,7 +218,9 @@ split = int(label.shape[0]/2)
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
 
 worksheet = workbook.add_worksheet('Inflections')
-label = [' ','Inflection 1 (min)','Inflection 2 (min)','RFU of Inflection 1','RFU of Inflection 2','Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)']
+label = [' ','Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
+label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
+label.extend(['Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)'])
 
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
@@ -230,20 +232,20 @@ for j,item in enumerate(IF[0,:]):
     if j == split:
         col = 1
         r = r + 10
-    for k in range(2):
+    for k in range(4):
         worksheet.write(r,col,txtLabel[j])
         worksheet.write(r+1+k,col,IF[k,j]/60)
-        worksheet.write(r+3+k,col,IRFU[k,j])
-        worksheet.write(r+5+k,col,Max[k,j]/60)
-        #worksheet.write(r+7+k,col,plateau[k,j])
+        worksheet.write(r+5+k,col,IRFU[k,j])
+        if k < 2:
+            worksheet.write(r+9+k,col,Max[k,j]/60)
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
-
 worksheet = workbook.add_worksheet('Mean Inflections')
-label = ['','Inflection 1 (avg/min)','Inflection 2 (avg/min)','Inflection 1 (std/min)','Inflection 2 (std/min)',
-'Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)','Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)']
-
+label = [' ','Inflection 1 avg','Inflection 2 avg','Inflection 3 avg','Inflection 4 avg']
+label.extend(['Inflection 1 std','Inflection 2 std','Inflection 3 std','Inflection 4 std'])
+label.extend(['Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)'])
+label.extend(['Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)'])
 for i,item in enumerate(label):
     worksheet.write(i, 0, item)
     worksheet.write(i + 10, 0, item)
@@ -256,11 +258,12 @@ for j,item in enumerate(IF[0,:]):
     if j % 3 == 0:
         col += 1
         worksheet.write(r,col,txtLabel[j])
-        for k in range(2):
-            worksheet.write(r+1+(2*k),col,np.nanmean([IF[k,j-i]/60 for i in range(3)]))
-            worksheet.write(r+2+(2*k),col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
-            worksheet.write(r+5+(2*k),col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
-            worksheet.write(r+6+(2*k),col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
+        for k in range(4):
+            worksheet.write(r+1+(4*k),col,np.nanmean([IF[k,j-i]/60 for i in range(3)]))
+            worksheet.write(r+4+(4*k),col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
+            if k < 2:
+                worksheet.write(r+9+(4*k),col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
+                worksheet.write(r+13+(4*k),col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
 worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',txtLabel,times,dataconv)
