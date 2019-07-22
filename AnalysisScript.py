@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 #%matplotlib inline
 
 sys.path.append('Git/')
-from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing
+from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing,GroupByLabel
 
 def openFile():
     global e1,e2
