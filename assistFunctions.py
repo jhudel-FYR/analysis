@@ -3,6 +3,12 @@ from scipy.signal import find_peaks
 import numpy as np
 import xlsxwriter
 
+def GroupByLabel(header,unique):
+    if unique:
+        indexes = np.unique(header,return_index=True)[1]
+        return [header[x] for x in sorted(indexes)]
+    else:
+        return header
 
 def getTwoPeaks(data):
     for width in range(5,1,-1):
@@ -148,4 +154,5 @@ if nope:
         plt.plot(x,data[xs:,well])
         for i in range(1,4):
             plt.axvline(IF[i,well]/27)
+        plt.savefig('/Users/KnownWilderness/2019/Coding/Fyr/fourInflections.png')
         plt.plot()

@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 #from openpyxl import Workbook
+#%matplotlib inline
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing
@@ -183,6 +184,8 @@ for i in range(m): # 1 to m-1
             Max[k,i] = first[int(locs[k,i]),i]
             ip += 1
 
+
+
 #background correct data
 BG = [0]*m
 for j in range(m):
@@ -205,35 +208,40 @@ for file in os.listdir(path):
     if file.endswith('INFO.xlsx'):
         infopath = os.path.join(path,file)
         break
-#infopath = path + '20190619b_UDAR_miR223-3p_cfx96_Experiment Info.xlsx'
 
 #Get labels
 labelraw = pd.ExcelFile(infopath)
-labelraw = labelraw.parse('0')
-label = labelraw.values
-txtLabel = label[:,17]
-split = int(label.shape[0]/2)
+labelsheet = labelraw.parse('0')
+label = labelsheet.values
+header = label[:,17]
+triplicateHeaders = GroupByLabel(header,True)
+individualHeaders = GroupByLabel(header,False)
 
-## Write data to an excel file
+expIndividual = [int(i[-2:].replace('_','')) for i in individualHeaders]
+splitIndIndex = np.unique(expGroups,return_index=True)[1]
+expGroups = [int(i[-2:].replace('_','')) for i in individualHeaders]
+splitGroupIndex = np.unique(expGroups,return_index=True)[1]
+## Write data to an excel
+
+
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
-
 worksheet = workbook.add_worksheet('Inflections')
-label = [' ','Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
+label = ['','Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
 label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
 label.extend(['Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)'])
 
-for i,item in enumerate(label):
-    worksheet.write(i, 0, item)
-    worksheet.write(i + 10, 0, item)
-
 col,r = (0 for i in range(2))
 for j,item in enumerate(IF[0,:]):
+    if j<len(label):
+        worksheet.write(j, 0, label[j])
+        worksheet.write(j + 12, 0, label[j])
     col += 1
-    if j == split:
+    #if j in splitIndIndex and j > 0:
+    if j == len(header)/2:
         col = 1
-        r = r + 10
+        r = r + 12
     for k in range(4):
-        worksheet.write(r,col,txtLabel[j])
+        worksheet.write(r,col,header[j])
         worksheet.write(r+1+k,col,IF[k,j]/60)
         worksheet.write(r+5+k,col,IRFU[k,j])
         if k < 2:
@@ -246,24 +254,28 @@ label = [' ','Inflection 1 avg','Inflection 2 avg','Inflection 3 avg','Inflectio
 label.extend(['Inflection 1 std','Inflection 2 std','Inflection 3 std','Inflection 4 std'])
 label.extend(['Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)'])
 label.extend(['Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)'])
-for i,item in enumerate(label):
-    worksheet.write(i, 0, item)
-    worksheet.write(i + 10, 0, item)
 
 col,r = (0 for i in range(2))
 for j,item in enumerate(IF[0,:]):
-    if j == split:
+    if j<len(label):
+        worksheet.write(j, 0, label[j])
+        worksheet.write(j + 20, 0, label[j])
+    #if j in splitGroupIndex and j>0:
+    if j == len(header)/2:
         col = 0
-        r = r + 10
-    if j % 3 == 0:
-        col += 1
-        worksheet.write(r,col,txtLabel[j])
-        for k in range(4):
-            worksheet.write(r+1+(4*k),col,np.nanmean([IF[k,j-i]/60 for i in range(3)]))
-            worksheet.write(r+4+(4*k),col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
-            if k < 2:
-                worksheet.write(r+9+(4*k),col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
-                worksheet.write(r+13+(4*k),col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
+        r = r + 20 #20*(np.where(splitGroupIndex==j)[0][0])
+    col += 1
+    worksheet.write(r,col,header[j])
+    #worksheet.write(r,col,sortedHeader[j])
+    for k in range(4):
+        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60 for i in range(3)]))
+        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
+        #worksheet.write(r+1+(4*k),col,np.nanmean([IF[k,j-i]/60 for i,hdr in enumerate(header) if hdr == sortedHeader[j-1]]))
+        #worksheet.write(r+4+(4*k),col,np.nanstd([IF[k,j-i]/60 for i,hdr in enumerate(header) if hdr == sortedHeader[j-1]]))
+        if k < 2:
+            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
+            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
+
 worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',txtLabel,times,dataconv)
