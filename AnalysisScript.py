@@ -124,8 +124,10 @@ for i in range(m): # 1 to m-1
         if derivative == 1:
             dLine = first[:,i]
         elif derivative == 2:
-            dLine = abs(second[:,i])
-            ip = 2
+            dLine = second[:,i]
+            ip = 1
+        elif derivative == 3:
+            dLine = -(second[:,i])
 
         #find the first two peaks, they need to exceed a min peak height and width
         #peaks,properties = getTwoPeaks(first[:,i])
