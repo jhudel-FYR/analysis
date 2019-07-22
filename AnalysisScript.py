@@ -121,8 +121,11 @@ for i in range(m): # 1 to m-1
     d2time = np.diff(timediff)
 
     for derivative in range(1,3):
-        if derivative == 1: dLine = first[:,i]
-        elif derivative == 2: dLine = abs(second[:,i])
+        if derivative == 1:
+            dLine = first[:,i]
+        elif derivative == 2:
+            dLine = abs(second[:,i])
+            ip = 2
 
         #find the first two peaks, they need to exceed a min peak height and width
         #peaks,properties = getTwoPeaks(first[:,i])
@@ -182,8 +185,7 @@ for i in range(m): # 1 to m-1
 
             #find max first derivative at each phase
             Max[k,i] = first[int(locs[k,i]),i]
-            ip += 1
-
+            ip += 2
 
 
 #background correct data
