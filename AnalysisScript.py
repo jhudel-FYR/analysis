@@ -189,7 +189,6 @@ for i in range(m): # 1 to m-1
             Max[k,i] = first[int(locs[k,i]),i]
             ip += 2
 
-
 #background correct data
 BG = [0]*m
 for j in range(m):
@@ -200,12 +199,6 @@ for j in range(m):
     else:
         BG[j] =  np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
     dataconv[:,j] = [i - BG[j] for i in data[:,j]]
-
-# #find first plateau level - not being used currently
-# for j in range(m):
-#     for k in range(2):
-#         plateau[k,j] = np.nanmean([dataconv[int(Istart[k,j])-i,j] for i in range(2)])
-
 
 #Get info file
 for file in os.listdir(path):
@@ -218,15 +211,12 @@ labelraw = pd.ExcelFile(infopath)
 labelsheet = labelraw.parse('0')
 label = labelsheet.values
 header = label[:,17]
-triplicateHeaders = GroupByLabel(header,True)
-individualHeaders = GroupByLabel(header,False)
-
+triplicateHeaders = np.asarray(GroupByLabel(header,True))
 expIndividual = [int(i[-2:].replace('_','')) for i in individualHeaders]
-splitIndIndex = np.unique(expGroups,return_index=True)[1]
+indIndex = np.unique(expGroups,return_index=True)[1]
 expGroups = [int(i[-2:].replace('_','')) for i in individualHeaders]
-splitGroupIndex = np.unique(expGroups,return_index=True)[1]
+groupIndex = np.unique(expGroups,return_index=True)[1]
 ## Write data to an excel
-
 
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
 worksheet = workbook.add_worksheet('Inflections')
@@ -235,21 +225,22 @@ label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of In
 label.extend(['Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)'])
 
 col,r = (0 for i in range(2))
+bumpGroup = 1
 for j,item in enumerate(IF[0,:]):
     if j<len(label):
         worksheet.write(j, 0, label[j])
-        worksheet.write(j + 12, 0, label[j])
+        worksheet.write(j + 12 * bumpGroup, 0, label[j])
     col += 1
-    #if j in splitIndIndex and j > 0:
-    if j == len(header)/2:
+    if j in indIndex and j > 0:
         col = 1
-        r = r + 12
+        r = r + 12 * bumpGroup
+        bumpGroup += 1
     for k in range(4):
         worksheet.write(r,col,header[j])
-        worksheet.write(r+1+k,col,IF[k,j]/60)
+        worksheet.write(r+1+k,col,IF[k,j]/60/27)
         worksheet.write(r+5+k,col,IRFU[k,j])
         if k < 2:
-            worksheet.write(r+9+k,col,Max[k,j]/60)
+            worksheet.write(r+9+k,col,Max[k,j]/60/27)
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
@@ -259,26 +250,26 @@ label.extend(['Inflection 1 std','Inflection 2 std','Inflection 3 std','Inflecti
 label.extend(['Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)'])
 label.extend(['Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)'])
 
-col,r = (0 for i in range(2))
-for j,item in enumerate(IF[0,:]):
+col,r,h = (0 for i in range(3))
+bumpGroup = 1
+for j in range(len(IF[0,:])):
+    h = col%len(triplicateHeaders)
     if j<len(label):
         worksheet.write(j, 0, label[j])
-        worksheet.write(j + 20, 0, label[j])
+        worksheet.write((j + 15 * bumpGroup), 0, label[j])
     #if j in splitGroupIndex and j>0:
-    if j == len(header)/2:
+    if j in groupIndex and j > 0:
         col = 0
-        r = r + 20 #20*(np.where(splitGroupIndex==j)[0][0])
+        r = r + 15 * bumpGroup
+        bumpGroup += 1
     col += 1
-    worksheet.write(r,col,header[j])
-    #worksheet.write(r,col,sortedHeader[j])
+    worksheet.write(r,col,triplicateHeaders[h])
     for k in range(4):
-        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60 for i in range(3)]))
-        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60 for i in range(3)]))
-        #worksheet.write(r+1+(4*k),col,np.nanmean([IF[k,j-i]/60 for i,hdr in enumerate(header) if hdr == sortedHeader[j-1]]))
-        #worksheet.write(r+4+(4*k),col,np.nanstd([IF[k,j-i]/60 for i,hdr in enumerate(header) if hdr == sortedHeader[j-1]]))
+        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
         if k < 2:
-            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60 for i in range(3)]))
-            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60 for i in range(3)]))
+            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
 
 worksheet.set_column(0, 0, width)
 
