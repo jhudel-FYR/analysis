@@ -20,12 +20,13 @@ def writeSheet(workbook,name,labels,times,datas):
         datasheet.write(0,i+2,labels[i])
     col = 0
     for row, data in enumerate(times):
-        datasheet.write(row+1, col, data)
+        datasheet.write(row+1, col, data/27)
         datasheet.write(row+1,col+1,data)
+        datasheet.write(row+1,col+2,data/60)
     row = 1
     for col in range(datas.shape[1]):
         for row in range(datas.shape[0]):
-            datasheet.write(row+1, col+2, datas[row,col])
+            datasheet.write(row+1, col+3, datas[row,col])
     return workbook
 
 def ind2sub(array_shape, ind):
