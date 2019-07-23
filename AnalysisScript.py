@@ -241,7 +241,6 @@ for j,item in enumerate(IF[0,:]):
         worksheet.write(r+5+k,col,IRFU[k,j])
         if k < 2:
             worksheet.write(r+9+k,col,Max[k,j]/60)
-            
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
@@ -271,9 +270,34 @@ for j in range(len(IF[0,:])):
         if k < 2:
             worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
             worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-
 worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',header,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU',header,times,data)
+
+worksheet = workbook.add_worksheet('Inflections (in Cycles)')
+label = ['','Inflection 1 (Cycles)','Inflection 2 (Cycles)','Inflection 3 (Cycles)','Inflection 4 (Cycles)']
+label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
+label.extend(['Max derivative 1 (RFU/Cycles)','Max derivative 2 (RFU/Cycles)'])
+
+col,r = (0 for i in range(2))
+bumpGroup = 1
+for j,item in enumerate(IF[0,:]):
+    if j<len(label):
+        worksheet.write(j, 0, label[j])
+        worksheet.write(j + 12 * bumpGroup, 0, label[j])
+    col += 1
+    if j in indIndex and j > 0:
+        col = 1
+        r = r + 12 * bumpGroup
+        bumpGroup += 1
+    for k in range(4):
+        worksheet.write(r,col,header[j])
+        worksheet.write(r+1+k,col,IF[k,j]/27)
+        worksheet.write(r+5+k,col,IRFU[k,j])
+        if k < 2:
+            worksheet.write(r+9+k,col,Max[k,j]/27)
+width= np.max([len(i) for i in label])
+worksheet.set_column(0, 0, width)
+
 workbook.close()
