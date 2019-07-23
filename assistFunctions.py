@@ -21,9 +21,10 @@ def getTwoPeaks(data):
 def writeSheet(workbook,name,labels,times,datas):
     datasheet = workbook.add_worksheet(name)
     datasheet.write(0,0,'Cycle')
-    datasheet.write(0,1,'Time (Min)')
+    datasheet.write(0,1,'Time (Sec)')
+    datasheet.write(0,2,'Time (Min)')
     for i in range(len(labels)):
-        datasheet.write(0,i+2,labels[i])
+        datasheet.write(0,i+3,labels[i])
     col = 0
     for row, data in enumerate(times):
         datasheet.write(row+1, col, data/27)

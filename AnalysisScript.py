@@ -192,7 +192,7 @@ for i in range(m): # 1 to m-1
 #background correct data
 BG = [0]*m
 for j in range(m):
-    if Istart[0,j] < 2:
+    if Istart[0,j] < 3:
         BG[j] = dataconv[0,j]
     elif Istart[0,j]<10:
         BG[j] = dataconv[1,j]
@@ -237,10 +237,11 @@ for j,item in enumerate(IF[0,:]):
         bumpGroup += 1
     for k in range(4):
         worksheet.write(r,col,header[j])
-        worksheet.write(r+1+k,col,IF[k,j]/60/27)
+        worksheet.write(r+1+k,col,IF[k,j]/60)
         worksheet.write(r+5+k,col,IRFU[k,j])
         if k < 2:
-            worksheet.write(r+9+k,col,Max[k,j]/60/27)
+            worksheet.write(r+9+k,col,Max[k,j]/60)
+            
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
@@ -265,11 +266,11 @@ for j in range(len(IF[0,:])):
     col += 1
     worksheet.write(r,col,triplicateHeaders[h])
     for k in range(4):
-        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
         if k < 2:
-            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60/27 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
 
 worksheet.set_column(0, 0, width)
 
