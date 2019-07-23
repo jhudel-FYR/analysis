@@ -212,9 +212,9 @@ labelsheet = labelraw.parse('0')
 label = labelsheet.values
 header = label[:,17]
 triplicateHeaders = np.asarray(GroupByLabel(header,True))
-expIndividual = [int(i[-2:].replace('_','')) for i in individualHeaders]
-indIndex = np.unique(expGroups,return_index=True)[1]
-expGroups = [int(i[-2:].replace('_','')) for i in individualHeaders]
+expIndividual = [int(i[-2:].replace('_','')) for i in header]
+indIndex = np.unique(expIndividual,return_index=True)[1]
+expGroups = [int(i[-2:].replace('_','')) for i in header]
 groupIndex = np.unique(expGroups,return_index=True)[1]
 ## Write data to an excel
 
@@ -273,6 +273,6 @@ for j in range(len(IF[0,:])):
 
 worksheet.set_column(0, 0, width)
 
-workbook = writeSheet(workbook,'Corr RFU',txtLabel,times,dataconv)
-workbook = writeSheet(workbook,'Raw RFU',txtLabel,times,data)
+workbook = writeSheet(workbook,'Corr RFU',header,times,dataconv)
+workbook = writeSheet(workbook,'Raw RFU',header,times,data)
 workbook.close()
