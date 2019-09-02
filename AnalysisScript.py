@@ -18,7 +18,8 @@ import matplotlib.pyplot as plt
 #%matplotlib inline
 
 sys.path.append('Git/')
-from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing,GroupByLabel
+from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing
+from assistFunctions import GroupByLabel,averageTriplicates
 
 def openFile():
     global e1,e2
@@ -48,8 +49,6 @@ if __name__ == '__main__':
     mainloop()
 
 # Load data and define RFU/time columns
-#load data, with cycles in first column, data in remaining columns, any
-#non-numerical data is ignored by the program (we extract numerical data num)
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
@@ -60,6 +59,19 @@ for file in os.listdir(path):
         datapath = os.path.join(path,file)
         break
 
+#Get info file
+for file in os.listdir(path):
+    if file.endswith('INFO.xlsx'):
+        infopath = os.path.join(path,file)
+        break
+
+#Get labels
+labelraw = pd.ExcelFile(infopath)
+labelsheet = labelraw.parse('0')
+label = labelsheet.values
+header = label[:,17]
+triplicateHeaders = np.asarray(GroupByLabel(header,True))
+
 wb = xlrd.open_workbook(datapath)
 sheet = wb.sheet_by_name('SYBR')
 data = np.empty((sheet.nrows-1,sheet.ncols-1))
@@ -68,10 +80,6 @@ for j in range(1,sheet.ncols):
        data[i-1,j-1] = sheet.cell_value(i,j)
 wb.release_resources()
 del wb
-
-# dataraw = pd.ExcelFile(datapath)
-# dataraw = dataraw.parse('SYBR')
-# ddata = dataraw.values
 
 #cycle time - update this if the time for one cycle on the qPCR machine changes
 if len(cycle) == 0 :
@@ -93,8 +101,6 @@ data = data[cut:,1:]
 [n,m] = data.shape
 
 #convert data
-L = data.shape[0]
-# conv = cref/data(L,1);
 dataconv = copy.deepcopy(data)
 
 #delta time
@@ -105,16 +111,21 @@ extdtime = np.tile(dtime,(1,m-1))
 timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
 #Initialize matrices and lists
-polyDegree = 2
 W = np.empty(2)
-locs,pks,H,Pr,plateau = (np.empty((2,m)) for i in range(5))
-Istart,IF,Ie,I,Max,IRFU = (np.empty((4,m)) for i in range(6))
+locs,pks,H,Pr,plateau,Max = (np.empty((2,m)) for i in range(6))
+Istart,IF,Ie,I,IRFU = (np.empty((4,m)) for i in range(5))
 sdata,first,second = (np.empty((n,m)) for i in range(3))
 d2time = np.empty((n-2,m))
 dLine = []
 
+lastheader = ''
+g = -1
+IndResult = np.empty((m,14))
+GroupResult = np.zeros((int(m/3),26))
+
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
 for i in range(m): # 1 to m-1
+    WellResult = {}
     ip = 0
     first[:,i] = smooth(np.gradient(data[:,i]))
     second[:,i] = np.gradient(first[:,i])
@@ -127,10 +138,9 @@ for i in range(m): # 1 to m-1
             dLine = second[:,i]
             ip = 1
         elif derivative == 3:
-            dLine = -(second[:,i])
+            dLine = -(second[:,i]) #flip in order to find the negative peak
 
-        #find the first two peaks, they need to exceed a min peak height and width
-        #peaks,properties = getTwoPeaks(first[:,i])
+        #find the first two peaks
         peaks,properties = getTwoPeaks(abs(dLine[:]))
         if peaks[0]== 0 and peaks[1] == 0:
             print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
@@ -139,9 +149,13 @@ for i in range(m): # 1 to m-1
         pks[:,i] = [dLine[x] for x in peaks]
         Pr[:,i] = properties["prominences"]
 
-        #take the width of the peak, make it an integer, divide in half, and
-        #add two to get a region to fit over
-        W[:] = np.maximum(properties["widths"]/2,4) #this is the half width, no smaller than 4 units
+        #find max first derivative at each phase
+        if derivative == 1:
+            Max[:,i] = [first[int(x),i] for x in locs[:,i]]
+
+        #take the width of the peak, divide in half, this is the half width, no smaller than 4 units
+        #TODO: use something different then the generic 4
+        W[:] = np.maximum(properties["widths"]/2,4)
 
         for k in range(2):
             #fit the first and second peaks using the location of the peak
@@ -152,14 +166,12 @@ for i in range(m): # 1 to m-1
             xRange = xEnd-xStart
 
             #fit a polynomial to the first derivative and retrieve the zero
-            fitd = np.polyfit(timediff[xStart:xEnd],dLine[xStart:xEnd],polyDegree)
-            check =  polyEquation(fitd,timediff[xStart:xEnd])
-            fitrange = dLine[xStart:xEnd]
+            [predictions,fitd] =  polyEquation(timediff[xStart:xEnd],dLine[xStart:xEnd],None)
             IF[ip,i] = -fitd[1]/(2*fitd[0])
 
-            #retrieve the calculated RFU at the inflection point:
-            fito = np.polyfit(times[xStart:xEnd],data[xStart:xEnd,i],polyDegree)
-            IRFU[ip,i] = polyEquation(fito,[IF[ip,i]])[0]
+            #retrieve the expected RFU at the inflection point:
+            [predictions,_] = polyEquation(times[xStart:xEnd],data[xStart:xEnd,i],[IF[ip,i]])
+            IRFU[ip,i] = predictions[0]
 
             #find the closest time index in the data (times) to the inflection points
             Y,I[ip,i] = getMin(times,IF[ip,i])
@@ -171,8 +183,7 @@ for i in range(m): # 1 to m-1
 
             Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
-            #find the best place to start fitting data on the first rise, in first
-            #derivative indices by looking for where the first derivative stops increasing
+            #find where the first derivative stops increasing -> to fit data to the first rise
             Ie[ip,i] = int(locs[k,i])
             if Ie[ip,i]>2:
                 Ie[ip,i] = int(Ie[ip,i] - np.floor(W[k]/2))
@@ -185,9 +196,39 @@ for i in range(m): # 1 to m-1
             #find where the first rise begins, index in the data
             Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
-            #find max first derivative at each phase
-            Max[k,i] = first[int(locs[k,i]),i]
             ip += 2
+
+    #Retrieve experiment number from label
+    if lastheader != header[i]:
+        g += 1
+    exp = int(header[i][-2:].replace('_',''))
+    lastheader = header[i]
+
+    #each row is an individual well, the first column is the triplicate #, the second is the experiment #,
+    #following columns are the parameters
+    IndResult[i,:2] = [g,exp]
+    IndResult[i,2:6] = [x/60 for x in IF[:,i]] #time of inflection points 1 thru 4
+    IndResult[i,6:10] = [x for x in IRFU[:,i]] #RFU of inflection points 1 through 4
+    IndResult[i,10] = (IF[2,i] - IF[0,i])/60 #diff of inf 1 and 3
+    IndResult[i,11] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
+    IndResult[i,12:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
+
+#each row is a triplicate, each column is a variable, avg then std
+nVars = len(IndResult[0,2:])
+Triplicates = np.unique(IndResult[:,0])
+for trip in Triplicates:
+    i = int(trip)
+    col = 0
+    for var in range(len(IndResult[0,:])):
+        triplicateVars = [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,0] == i]
+        if var < 2:
+            GroupResult[i,col] = triplicateVars[0]
+            col += 1
+        else:
+            GroupResult[i,col] = np.nanmean(triplicateVars)
+            col += 1
+            GroupResult[i,col] = np.nanstd(triplicateVars)
+            col += 1
 
 #background correct data
 BG = [0]*m
@@ -200,104 +241,76 @@ for j in range(m):
         BG[j] =  np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
     dataconv[:,j] = [i - BG[j] for i in data[:,j]]
 
-#Get info file
-for file in os.listdir(path):
-    if file.endswith('INFO.xlsx'):
-        infopath = os.path.join(path,file)
-        break
 
-#Get labels
-labelraw = pd.ExcelFile(infopath)
-labelsheet = labelraw.parse('0')
-label = labelsheet.values
-header = label[:,17]
-triplicateHeaders = np.asarray(GroupByLabel(header,True))
-expIndividual = [int(i[-2:].replace('_','')) for i in header]
-indIndex = np.unique(expIndividual,return_index=True)[1]
-expGroups = [int(i[-2:].replace('_','')) for i in header]
-groupIndex = np.unique(expGroups,return_index=True)[1]
+
+
+
 ## Write data to an excel
-
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
-worksheet = workbook.add_worksheet('Inflections')
-label = ['','Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
-label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
-label.extend(['Max derivative 1 (RFU/min)','Max derivative 2 (RFU/min)'])
 
+#Create labels for excel sheet
+label = ['Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
+label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
+label.extend(['Diff of Inf 1 to Inf 3 (min)','Diff of Inf 2 to Inf 4 (min)'])
+label.extend(['Max derivative of first phase (RFU/min)','Max derivative of second phase (RFU/min)'])
+
+worksheet = workbook.add_worksheet('Inflections')
 col,r = (0 for i in range(2))
-bumpGroup = 1
-for j,item in enumerate(IF[0,:]):
-    if j<len(label):
-        worksheet.write(j, 0, label[j])
-        worksheet.write(j + 12 * bumpGroup, 0, label[j])
+for j in range(m): #each experiment
+    r = int(IndResult[j,1]-1) * (nVars+2)
+    if IndResult[j,1] != IndResult[j-1,1] and j > 0:#reset to left for each experiment
+        col = 0
     col += 1
-    if j in indIndex and j > 0:
-        col = 1
-        r = r + 12 * bumpGroup
-        bumpGroup += 1
-    for k in range(4):
-        worksheet.write(r,col,header[j])
-        worksheet.write(r+1+k,col,IF[k,j]/60)
-        worksheet.write(r+5+k,col,IRFU[k,j])
-        if k < 2:
-            worksheet.write(r+9+k,col,Max[k,j]/60)
+    for var in range(nVars):
+        if var == 0: #Well labels only need to be written in first row once
+            worksheet.write(r,col,header[j])
+        r += 1
+        if col == 1: #Variable labels only need to be written in first column once
+            worksheet.write(r, 0, label[var])
+        worksheet.write(r,col,IndResult[j,var+2]) #Variable value
+
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
-worksheet = workbook.add_worksheet('Mean Inflections')
-label = [' ','Inflection 1 avg','Inflection 2 avg','Inflection 3 avg','Inflection 4 avg']
-label.extend(['Inflection 1 std','Inflection 2 std','Inflection 3 std','Inflection 4 std'])
-label.extend(['Max derivative 1 (avg RFU/min)','Max derivative 2 (avg RFU/min)'])
-label.extend(['Max derivative 1 (std RFU/min)','Max derivative 2 (std RFU/min)'])
+label = ['Inflection 1 avg','Inflection 1 std','Inflection 2 avg','Inflection 2 std']
+label.extend(['Inflection 3 avg','Inflection 3 std','Inflection 4 avg','Inflection 4 std'])
+label.extend(['RFU 1 avg','RFU 1 std','RFU 2 avg','RFU 2 std'])
+label.extend(['RFU 3 avg','RFU 3 std','RFU 4 avg','RFU 4 std'])
+label.extend(['Diff 1 to 3 avg','Diff 1 to 3 std','Diff 2 to 4 avg','Diff 2 to 4 std'])
+label.extend(['Max slope phase 1 (avg RFU/min)','Max slope phase 1 (std RFU/min)'])
+label.extend(['Max slope phase 2 (std RFU/min)','Max phase slope 2 (std RFU/min)'])
 
-col,r,h = (0 for i in range(3))
-bumpGroup = 1
-for j in range(len(IF[0,:])):
-    h = col%len(triplicateHeaders)
-    if j<len(label):
-        worksheet.write(j, 0, label[j])
-        worksheet.write((j + 15 * bumpGroup), 0, label[j])
-    #if j in splitGroupIndex and j>0:
-    if j in groupIndex and j > 0:
+worksheet = workbook.add_worksheet('Mean Inflections')
+col,r = (0 for i in range(2))
+for trip in Triplicates: #each triplicate
+    j = np.where(GroupResult[:,0] == trip)[0][0]
+    r = int(GroupResult[j,1]-1) * (nVars*2+2)
+    if GroupResult[j,1] != GroupResult[j-1,1] and j > 0:
         col = 0
-        r = r + 15 * bumpGroup
-        bumpGroup += 1
     col += 1
-    worksheet.write(r,col,triplicateHeaders[h])
-    for k in range(4):
-        worksheet.write(r+1+k,col,np.nanmean([IF[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-        worksheet.write(r+5+k,col,np.nanstd([IF[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-        if k < 2:
-            worksheet.write(r+9+k,col,np.nanmean([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
-            worksheet.write(r+11+k,col,np.nanstd([Max[k,j-i]/60 for i,hdr in enumerate(IF[0,:]) if header[i] == triplicateHeaders[h]]))
+
+    for var in range(nVars*2):
+        if var == 0: #Well labels only need to be written in first row once
+            worksheet.write(r,col,triplicateHeaders[j])
+        r += 1
+        if col == 1: #Variable labels only need to be written in first column once
+            worksheet.write(r, col-1, label[var])
+        worksheet.write(r,col,GroupResult[j,var+2]) #Variable value
+width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',header,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU',header,times,data)
-
-worksheet = workbook.add_worksheet('Inflections (in Cycles)')
-label = ['','Inflection 1 (Cycles)','Inflection 2 (Cycles)','Inflection 3 (Cycles)','Inflection 4 (Cycles)']
-label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
-label.extend(['Max derivative 1 (RFU/Cycles)','Max derivative 2 (RFU/Cycles)'])
-
-col,r = (0 for i in range(2))
-bumpGroup = 1
-for j,item in enumerate(IF[0,:]):
-    if j<len(label):
-        worksheet.write(j, 0, label[j])
-        worksheet.write(j + 12 * bumpGroup, 0, label[j])
-    col += 1
-    if j in indIndex and j > 0:
-        col = 1
-        r = r + 12 * bumpGroup
-        bumpGroup += 1
-    for k in range(4):
-        worksheet.write(r,col,header[j])
-        worksheet.write(r+1+k,col,IF[k,j]/27)
-        worksheet.write(r+5+k,col,IRFU[k,j])
-        if k < 2:
-            worksheet.write(r+9+k,col,Max[k,j]/27)
-width= np.max([len(i) for i in label])
-worksheet.set_column(0, 0, width)
+dataAverages = averageTriplicates(data,Triplicates,IndResult[:,0])
+workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,times,dataAverages)
 
 workbook.close()
+
+def averageTriplicates(data,triplicates,individuals):
+    tripAvgs = np.empty((data.shape[0],int(data.shape[1]/3)))
+    for row in range(data.shape[0]):
+        for trip in triplicates:
+            i = int(trip)
+            tripData = [data[row,i] for i,j in enumerate(individuals) if j==trip]
+            tripAvgs[row,i] = np.nanmean(tripData)
+    return tripAvgs

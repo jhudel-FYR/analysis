@@ -18,6 +18,15 @@ def getTwoPeaks(data):
                 return peaks,properties
     return [[0,0],0]
 
+def averageTriplicates(data,triplicates,individuals):
+    tripAvgs = np.empty((data.shape[0],int(data.shape[1]/3)))
+    for row in range(data.shape[0]):
+        for trip in triplicates:
+            i = int(trip)
+            tripData = [data[row,i] for i,j in enumerate(individuals) if j==trip]
+            tripAvgs[row,i] = np.nanmean(tripData)
+    return tripAvgs
+
 def writeSheet(workbook,name,labels,times,datas):
     datasheet = workbook.add_worksheet(name)
     datasheet.write(0,0,'Cycle')
@@ -46,11 +55,18 @@ def ind2sub(array_shape, ind):
 def square(list):
     return [i ** 2 for i in list]
 
-def polyEquation(coef,listx):
-    x2 = square(listx)
+def polyEquation(timelist,observed,timepoint):
+    polynomial = 2
+    coef = np.polyfit(timelist,observed,polynomial)
+    if timepoint is None:
+        time = timelist
+    else:
+        time = timepoint
+    x2 = square(time)
     ax2 = [coef[0]*x for x in x2]
-    bx = [coef[1]*x for x in listx]
-    return [(a+b+coef[2]) for (a,b) in zip(ax2,bx)]
+    bx = [coef[1]*x for x in time]
+    predictions = [(a+b+coef[2]) for (a,b) in zip(ax2,bx)]
+    return [predictions,coef]
 
 def stillIncreasing(id,line):
     keepMoving = True
