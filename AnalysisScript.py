@@ -52,6 +52,8 @@ if __name__ == '__main__':
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190918f_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190924b_AA'
 # cycle = 27
 # cut = 0
 for file in os.listdir(path):
@@ -81,9 +83,9 @@ for j in range(1,sheet.ncols):
 wb.release_resources()
 del wb
 
-#cycle time - update this if the time for one cycle on the qPCR machine changes
+# cycle time - update this if the time for one cycle on the qPCR machine changes
 if len(cycle) == 0 :
-    cycle = 27
+    cycle = 27 #TODO: twice as many data points in each cycle
 else:
     cycle = float(cycle)
 
@@ -128,7 +130,7 @@ for i in range(m): # 1 to m-1
     WellResult = {}
     ip = 0
     first[:,i] = smooth(np.gradient(data[:,i]))
-    second[:,i] = np.gradient(first[:,i])
+    second[:,i] = smooth(np.gradient(first[:,i]))
     d2time = np.diff(timediff)
     for derivative in range(1,3):
         if derivative == 1:
@@ -141,6 +143,7 @@ for i in range(m): # 1 to m-1
 
         #find the first two peaks
         peaks,properties = getTwoPeaks(abs(dLine[:]))
+
         if peaks[0]== 0 and peaks[1] == 0:
             print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             continue
@@ -167,6 +170,9 @@ for i in range(m): # 1 to m-1
             #fit a polynomial to the first derivative and retrieve the zero
             [predictions,fitd] =  polyEquation(timediff[xStart:xEnd],dLine[xStart:xEnd],None)
             IF[ip,i] = -fitd[1]/(2*fitd[0])
+            if ip == 3:
+                if IF[ip,i] < IF[ip-1,i]:
+                    IF[ip,i] = 0
 
             #retrieve the expected RFU at the inflection point:
             [predictions,_] = polyEquation(times[xStart:xEnd],data[xStart:xEnd,i],[IF[ip,i]])
