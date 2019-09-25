@@ -101,7 +101,7 @@ data = data[cut:,1:]
 [n,m] = data.shape
 
 #convert data
-dataconv = copy.deepcopy(data)
+dataconv = np.empty((data.shape))
 
 #delta time
 dtime = np.diff(time)
@@ -130,7 +130,6 @@ for i in range(m): # 1 to m-1
     first[:,i] = smooth(np.gradient(data[:,i]))
     second[:,i] = np.gradient(first[:,i])
     d2time = np.diff(timediff)
-
     for derivative in range(1,3):
         if derivative == 1:
             dLine = first[:,i]
@@ -155,7 +154,7 @@ for i in range(m): # 1 to m-1
 
         #take the width of the peak, divide in half, this is the half width, no smaller than 4 units
         #TODO: use something different then the generic 4
-        W[:] = np.maximum(properties["widths"]/2,4)
+        W[:] = np.maximum(properties["widths"]/2,2)
 
         for k in range(2):
             #fit the first and second peaks using the location of the peak
@@ -234,19 +233,17 @@ for trip in Triplicates:
 BG = [0]*m
 for j in range(m):
     if Istart[0,j] < 3:
-        BG[j] = dataconv[0,j]
-    elif Istart[0,j]<10:
-        BG[j] = dataconv[1,j]
+        BG[j] = data[0,j]
+    elif Istart[0,j] < 10:
+        BG[j] = data[1,j]
+    elif Istart[0,j] < data.shape[0]: #TODO: start of inflection is not calculating correctly
+        BG[j] =  np.nanmean([data[int(Istart[0,j])-i,j] for i in range(2)])
     else:
-        BG[j] =  np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
+        BG[j] = data[0,j]
     dataconv[:,j] = [i - BG[j] for i in data[:,j]]
 
-
-
-
-
 ## Write data to an excel
-workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx')
+workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx', {'nan_inf_to_errors': True})
 
 #Create labels for excel sheet
 label = ['Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
@@ -305,6 +302,7 @@ dataAverages = averageTriplicates(data,Triplicates,IndResult[:,0])
 workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,times,dataAverages)
 
 workbook.close()
+
 
 def averageTriplicates(data,triplicates,individuals):
     tripAvgs = np.empty((data.shape[0],int(data.shape[1]/3)))

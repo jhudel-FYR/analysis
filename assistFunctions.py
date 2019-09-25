@@ -10,9 +10,9 @@ def GroupByLabel(header,unique):
     else:
         return header
 
-def getTwoPeaks(data):
-    for width in range(5,1,-1):
-        for proms in range(50,20,-1):
+def getTwoPeaks(data): #todo: make this even more flexible
+    for width in range(10,1,-1): # (8,1,-1):
+        for proms in range(30,1,-1): # (50,10,-1):
             peaks,properties = find_peaks(data, prominence=proms,width=width)
             if len(peaks)==2:
                 return peaks,properties
