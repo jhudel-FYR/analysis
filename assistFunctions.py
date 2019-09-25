@@ -9,10 +9,27 @@ def GroupByLabel(header,unique):
         return [header[x] for x in sorted(indexes)]
     else:
         return header
+#
+# def getTwoPeaks(data): #todo: make this even more flexible
+#     for proms in range(30,1,-1): # (50,10,-1):
+#         for width in range(10,1,-1): # (8,1,-1):
+#             peaks,properties = find_peaks(data, prominence=proms,width=width)
+#             if len(peaks)==2:
+#                 return peaks,properties
+#     return [[0,0],0]
+#
+#     for proms in range(20,1,-1): # (50,10,-1):
+#         for width in range(15,5,-1): # (8,1,-1):
 
 def getTwoPeaks(data): #todo: make this even more flexible
-    for proms in range(30,1,-1): # (50,10,-1):
-        for width in range(10,1,-1): # (8,1,-1):
+    for proms in range(20,5,-1): # (50,10,-1):
+        for width in range(15,5,-1): # (8,1,-1):
+            peaks,properties = find_peaks(data, prominence=proms,width=width)
+            if len(peaks)==2:
+                return peaks,properties
+    #search more extremes if it doesn't work
+    for proms in range(10,1,-1): # (50,10,-1):
+        for width in range(5,1,-1): # (8,1,-1):
             peaks,properties = find_peaks(data, prominence=proms,width=width)
             if len(peaks)==2:
                 return peaks,properties
@@ -85,7 +102,7 @@ def smooth(a):
     # a: NumPy 1-D array containing the data to be smoothed
     # WSZ: smoothing window size needs, which must be odd number,
     # as in the original MATLAB implementation
-    WSZ = 5
+    WSZ = 13
     out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
     r = np.arange(1,WSZ-1,2)
     start = np.cumsum(a[:WSZ-1])[::2]/r
