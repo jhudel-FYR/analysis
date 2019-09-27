@@ -352,6 +352,7 @@ except OSError as exc:
     pass
 
 #seaborn.set_palette("bright")
+#TODO: add more colors and keep gray as the first, blue as the last
 manualcolors = ["gray", "purple","sienna","olivedrab","pink", "lightgreen", "orange", "skyblue"]
 seaborn.set_palette(manualcolors)
 seaborn.palplot(seaborn.color_palette(manualcolors))
@@ -394,8 +395,8 @@ for group in Groups:
     plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
-    plt.show()
-    #saveImage(plt,figpath,title)
+    #plt.show()
+    saveImage(plt,figpath,title)
 
 
     #average data by group
