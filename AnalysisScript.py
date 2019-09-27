@@ -1,3 +1,4 @@
+# sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
 
 #packages
 import sys
@@ -14,11 +15,8 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from plotnine import *
 import seaborn
 #%matplotlib inline
-#sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
-
 
 
 sys.path.append('Git/')
@@ -348,9 +346,8 @@ try:
 except OSError as exc:
     pass
 
-seaborn.set_palette("bright")
-# current_palette = seaborn.color_palette()
-# seaborn.palplot(current_palette)
+#seaborn.set_palette("bright")
+#seaborn.palplot(seaborn.color_palette())
 
 ####RFU averages and individuals, and inflections, by group
 df = pd.DataFrame(dict(index=IndResult[:,0],
@@ -368,19 +365,28 @@ rdf.insert(0,'time',times/60)
 xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 
 
-#individual data by group
+#individual data by group #colored by triplicate
+idf = pd.DataFrame(columns=['time','index','value','triplicate'])
 for group in Groups:
     group = int(group)
     title = generictitle + 'Individuals_' + str(group)
-    for index, individual in enumerate(header):
-        if int(individual[-1:])==group and index not in badWells:
-            if index % 3 == 0: #TODO: label might get skipped if it's a bad well
-                seaborn.lineplot(rdf['time'], rdf[index],label=individual,linewidth=.7)
-            else:
-                seaborn.lineplot(rdf['time'], rdf[index],linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small')
+    #TODO: create a subdf with the three lines in a triplicate
+    for index, triplicate in enumerate(triplicateHeaders):
+        if int(triplicate[-1]) == group:
+            listIndsInTrip = np.where(IndResult[:,1] == index)
+            listIndsInTrip = [elem for elem in listIndsInTrip[0] if elem not in badWells]
+            tripdf = rdf[listIndsInTrip]
+            tripdf.insert(0,'time',times/60)
+            tripdf = tripdf.melt(id_vars = 'time',var_name='index')
+            tripdf['triplicate'] = triplicate
+            idf = idf.append(tripdf,ignore_index=True)
+    snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
+    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    handles, labels = snsplt.get_legend_handles_labels()
+    plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
 
@@ -397,19 +403,22 @@ for group in Groups:
     plt.legend(loc='best',fontsize = 'x-small')
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
 
 #inflection data by group
 for group in Groups:
     group = int(group)
-    title = generictitle + 'Inflections_' + str(group+1)
+    title = generictitle + 'Inflections_' + str(group)
     subidg = idg[(idg['group']==group)]
     subidg = removeBadWells(badWells, subidg,'index')
-    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=.4)
+    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=.7)
     indplt.set(xticklabels=xaxis)
     plt.legend(loc='best',fontsize = 'x-small')
+    plt.xlabel('')
     plt.ylabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
 
@@ -433,6 +442,7 @@ handles, labels = snsplt.get_legend_handles_labels()
 plt.legend(handles=handles[1:], labels=labels[1:])
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
+#plt.show()
 saveImage(plt,figpath,title)
 
 
@@ -461,4 +471,5 @@ for inf in range(4):
     plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
+    #plt.show()
     saveImage(plt,figpath,title)

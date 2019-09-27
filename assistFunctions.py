@@ -14,7 +14,7 @@ def GroupByLabel(header,unique):
 
 def saveImage(plt,path,title):
     plt.title(str(title), fontsize=16)
-    strFile = os.path.join(path, title+'.pdf')
+    strFile = os.path.join(path, title+'.png')
     if os.path.isfile(strFile):
         os.remove(strFile)
     plt.savefig(strFile)

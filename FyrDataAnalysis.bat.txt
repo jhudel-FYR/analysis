@@ -1,8 +1,0 @@
-@echo off
-python %~dp0\AnalysisScript.py %*
-
-
-#alternative:
-#C:\python37\python.exe
-#"C:\LocationOfGitFolder\AnalysisScript.py"
-#pause
