@@ -1,4 +1,5 @@
-# sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
+import sys
+#sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
 
 #packages
 import sys
@@ -257,7 +258,7 @@ for trip in Triplicates:
             col += 1
 
 
-[k for j,k in enumerate(IndResult[:,var]) if IndResult[j,2] == trip]
+[k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
 #background correct data
 BG = [0]*m
 for j in range(m):
@@ -271,6 +272,10 @@ for j in range(m):
         BG[j] = dataconv[0,j]
     dataconv[:,j] = [i - BG[j] for i in dataconv[:,j]]
 
+
+
+
+
 ## Write data to an excel
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput2.xlsx', {'nan_inf_to_errors': True})
 
@@ -283,8 +288,8 @@ label.extend(['Max derivative of first phase (RFU/min)','Max derivative of secon
 worksheet = workbook.add_worksheet('Inflections')
 col,r = (0 for i in range(2))
 for j in range(m): #each experiment
-    r = int(IndResult[j,1]-1) * (nVars+2)
-    if IndResult[j,1] != IndResult[j-1,1] and j > 0:#reset to left for each experiment
+    r = int(IndResult[j,2]-1) * (nVars+2)
+    if IndResult[j,2] != IndResult[j-1,2] and j > 0:#reset to left for each experiment
         col = 0
     col += 1
     for var in range(nVars):
@@ -293,7 +298,7 @@ for j in range(m): #each experiment
         r += 1
         if col == 1: #Variable labels only need to be written in first column once
             worksheet.write(r, 0, label[var])
-        worksheet.write(r,col,IndResult[j,var+2]) #Variable value
+        worksheet.write(r,col,IndResult[j,var+4]) #Variable value
 
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
@@ -327,7 +332,7 @@ worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',header,cycle,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU',header,cycle,times,data)
-dataAverages = averageTriplicates(data,Triplicates,IndResult[:,0])
+dataAverages = averageTriplicates(data,Triplicates,IndResult[:,1])
 workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,cycle,times,dataAverages)
 
 workbook.close()
@@ -347,6 +352,9 @@ except OSError as exc:
     pass
 
 #seaborn.set_palette("bright")
+manualcolors = ["gray", "purple","sienna","olivedrab","pink", "lightgreen", "orange", "skyblue"]
+seaborn.set_palette(manualcolors)
+seaborn.palplot(seaborn.color_palette(manualcolors))
 #seaborn.palplot(seaborn.color_palette())
 
 ####RFU averages and individuals, and inflections, by group
@@ -379,15 +387,15 @@ for group in Groups:
             tripdf.insert(0,'time',times/60)
             tripdf = tripdf.melt(id_vars = 'time',var_name='index')
             tripdf['triplicate'] = triplicate
-            idf = idf.append(tripdf,ignore_index=True)
+            idf = idf.append(tripdf,ignore_index=True,sort=True)
     snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
     plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
     handles, labels = snsplt.get_legend_handles_labels()
     plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
-    #plt.show()
-    saveImage(plt,figpath,title)
+    plt.show()
+    #saveImage(plt,figpath,title)
 
 
     #average data by group
@@ -413,7 +421,7 @@ for group in Groups:
     title = generictitle + 'Inflections_' + str(group)
     subidg = idg[(idg['group']==group)]
     subidg = removeBadWells(badWells, subidg,'index')
-    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=.7)
+    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=1)
     indplt.set(xticklabels=xaxis)
     plt.legend(loc='best',fontsize = 'x-small')
     plt.xlabel('')
@@ -435,7 +443,7 @@ for group in Groups:
             tripdf['time'] = times/60
             tripdf['triplicate'] = index
             tripdf['group'] = 'Group ' + str(group)
-            adf = adf.append(tripdf,ignore_index=True)
+            adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
 plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
 handles, labels = snsplt.get_legend_handles_labels()
@@ -463,10 +471,23 @@ gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
 df = removeBadWells(badWells,gd,'index')
 numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
-xaxis =  xaxis * int(len(IndResult[:,0])/numGroups)
+xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
+# xaxis[:8]
+
+# xt[:8]
+# count = 0
+# xt = []
+# for idx,group in enumerate(xaxis):
+#     if (xaxis[idx]-1)==0 and idx > 0:
+#         xt.append('')
+#         count += 1
+#         xt.append(count)
+#     else:
+#         xt.append(count)
+#     count += 1
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=.7)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=1)
     indplt.set(xticklabels=xaxis)
     plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
     plt.ylabel('Time (Min)')
