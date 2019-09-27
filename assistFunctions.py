@@ -14,10 +14,10 @@ def GroupByLabel(header,unique):
 
 def saveImage(plt,path,title):
     plt.title(str(title), fontsize=16)
-    strFile = os.path.join(path, title+'.png')
+    strFile = os.path.join(path, title)
     if os.path.isfile(strFile):
         os.remove(strFile)
-    plt.savefig(strFile)
+    plt.savefig(strFile,quality=90,format='png')
     plt.close()
 
 def removeBadWells(badWells,df,index):
