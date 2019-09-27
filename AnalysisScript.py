@@ -14,12 +14,16 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-#from openpyxl import Workbook
+from plotnine import *
+import seaborn
 #%matplotlib inline
+#sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
+
+
 
 sys.path.append('Git/')
 from assistFunctions import square,polyEquation,getMin,smooth,writeSheet,getTwoPeaks,stillIncreasing
-from assistFunctions import GroupByLabel,averageTriplicates
+from assistFunctions import GroupByLabel,averageTriplicates, saveImage, removeBadWells
 
 def openFile():
     global e1,e2
@@ -53,7 +57,8 @@ path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190918f_AA'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190924b_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190916c_AA'
 # cycle = 27
 # cut = 0
 for file in os.listdir(path):
@@ -102,8 +107,11 @@ times = time * cycle
 data = data[cut:,1:]
 [n,m] = data.shape
 
+#graphing data
+datagraph = copy.deepcopy(data)
+
 #convert data
-dataconv = np.empty((data.shape))
+dataconv = copy.deepcopy(data)
 
 #delta time
 dtime = np.diff(time)
@@ -114,16 +122,20 @@ timediff = [(times[t]+times[t+1])/2 for t in range(n-1)]
 
 #Initialize matrices and lists
 W = np.empty(2)
-locs,pks,H,Pr,plateau,Max = (np.empty((2,m)) for i in range(6))
-Istart,IF,Ie,I,IRFU = (np.empty((4,m)) for i in range(5))
-sdata,first,second = (np.empty((n,m)) for i in range(3))
-d2time = np.empty((n-2,m))
+locs,pks,H,Pr,plateau,Max = (np.zeros((2,m)) for i in range(6))
+Istart,IF,Ie,I,IRFU = (np.zeros((4,m)) for i in range(5))
+sdata,first,second = (np.zeros((n,m)) for i in range(3))
+d2time = np.zeros((n-2,m))
 dLine = []
+badWells = []
 
 lastheader = ''
-g = -1
-IndResult = np.empty((m,14))
+group = -1
+triplicateiterator = -1
+IndResult = np.zeros((m,16))
 GroupResult = np.zeros((int(m/3),26))
+previousgroup = 0
+triplicateLabel = 0
 
 ## Fit peaks in the first derivative with a quadratic to determine inflection points
 for i in range(m): # 1 to m-1
@@ -146,7 +158,9 @@ for i in range(m): # 1 to m-1
 
         if peaks[0]== 0 and peaks[1] == 0:
             print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
-            continue
+            badWells.append(i)
+            break
+
         locs[:,i] = peaks
         pks[:,i] = [dLine[x] for x in peaks]
         Pr[:,i] = properties["prominences"]
@@ -205,54 +219,65 @@ for i in range(m): # 1 to m-1
 
     #Retrieve experiment number from label
     if lastheader != header[i]:
-        g += 1
-    exp = int(header[i][-2:].replace('_',''))
+        triplicateiterator += 1
+        triplicateLabel += 1
+    group = int(header[i][-2:].replace('_',''))
     lastheader = header[i]
+
+    if group > previousgroup:
+            triplicateLabel = 0
+            previousgroup = group
 
     #each row is an individual well, the first column is the triplicate #, the second is the experiment #,
     #following columns are the parameters
-    IndResult[i,:2] = [g,exp]
-    IndResult[i,2:6] = [x/60 for x in IF[:,i]] #time of inflection points 1 thru 4
-    IndResult[i,6:10] = [x for x in IRFU[:,i]] #RFU of inflection points 1 through 4
-    IndResult[i,10] = (IF[2,i] - IF[0,i])/60 #diff of inf 1 and 3
-    IndResult[i,11] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
-    IndResult[i,12:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
+    IndResult[i,:4] = [i, triplicateiterator, group, triplicateLabel]
+    IndResult[i,4:8] = [x/60 for x in IF[:,i]] #time of inflection points 1 thru 4
+    IndResult[i,8:12] = [x for x in IRFU[:,i]] #RFU of inflection points 1 through 4
+    IndResult[i,12] = (IF[2,i] - IF[0,i])/60 #diff of inf 1 and 3
+    IndResult[i,13] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
+    IndResult[i,14:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
+
 
 #each row is a triplicate, each column is a variable, avg then std
-nVars = len(IndResult[0,2:])
-Triplicates = np.unique(IndResult[:,0])
+#first column is group, second column is triplicate
+nVars = len(IndResult[0,4:])
+Groups = np.unique(IndResult[:,2])
+Triplicates = np.unique(IndResult[:,3])
 for trip in Triplicates:
-    i = int(trip)
+    trip = int(trip)
     col = 0
-    for var in range(len(IndResult[0,:])):
-        triplicateVars = [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,0] == i]
-        if var < 2:
-            GroupResult[i,col] = triplicateVars[0]
-            col += 1
+    for var in range(len(IndResult[0,3:])):
+        triplicateVars = [k for j,k in enumerate(IndResult[:,var+3]) if IndResult[j,1] == trip]
+        if var == 0:
+            triplicateVars = [k for j,k in enumerate(IndResult[:,2]) if IndResult[j,1] == trip]
+            GroupResult[trip,:2] = [triplicateVars[0],trip]
+            col += 2
         else:
-            GroupResult[i,col] = np.nanmean(triplicateVars)
+            GroupResult[trip,col] = np.nanmean(triplicateVars)
             col += 1
-            GroupResult[i,col] = np.nanstd(triplicateVars)
+            GroupResult[trip,col] = np.nanstd(triplicateVars)
             col += 1
 
+
+[k for j,k in enumerate(IndResult[:,var]) if IndResult[j,2] == trip]
 #background correct data
 BG = [0]*m
 for j in range(m):
     if Istart[0,j] < 3:
-        BG[j] = data[0,j]
+        BG[j] = dataconv[0,j]
     elif Istart[0,j] < 10:
-        BG[j] = data[1,j]
-    elif Istart[0,j] < data.shape[0]: #TODO: start of inflection is not calculating correctly
-        BG[j] =  np.nanmean([data[int(Istart[0,j])-i,j] for i in range(2)])
+        BG[j] = dataconv[1,j]
+    elif Istart[0,j] < dataconv.shape[0]: #TODO: start of inflection is not calculating correctly
+        BG[j] =  np.nanmean([dataconv[int(Istart[0,j])-i,j] for i in range(2)])
     else:
-        BG[j] = data[0,j]
-    dataconv[:,j] = [i - BG[j] for i in data[:,j]]
+        BG[j] = dataconv[0,j]
+    dataconv[:,j] = [i - BG[j] for i in dataconv[:,j]]
 
 ## Write data to an excel
-workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx', {'nan_inf_to_errors': True})
+workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput2.xlsx', {'nan_inf_to_errors': True})
 
 #Create labels for excel sheet
-label = ['Inflection 1 (min)','Inflection 2 (min)','Inflection 3 (min)','Inflection 4 (min)']
+label = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 label.extend(['RFU of Inflection 1 (RFU)','RFU of Inflection 2 (RFU)','RFU of Inflection 3 (RFU)','RFU of Inflection 4 (RFU)'])
 label.extend(['Diff of Inf 1 to Inf 3 (min)','Diff of Inf 2 to Inf 4 (min)'])
 label.extend(['Max derivative of first phase (RFU/min)','Max derivative of second phase (RFU/min)'])
@@ -281,12 +306,12 @@ label.extend(['RFU 1 avg','RFU 1 std','RFU 2 avg','RFU 2 std'])
 label.extend(['RFU 3 avg','RFU 3 std','RFU 4 avg','RFU 4 std'])
 label.extend(['Diff 1 to 3 avg','Diff 1 to 3 std','Diff 2 to 4 avg','Diff 2 to 4 std'])
 label.extend(['Max slope phase 1 (avg RFU/min)','Max slope phase 1 (std RFU/min)'])
-label.extend(['Max slope phase 2 (std RFU/min)','Max phase slope 2 (std RFU/min)'])
+label.extend(['Max slope phase 2 (avg RFU/min)','Max phase slope 2 (std RFU/min)'])
 
 worksheet = workbook.add_worksheet('Mean Inflections')
 col,r = (0 for i in range(2))
 for trip in Triplicates: #each triplicate
-    j = np.where(GroupResult[:,0] == trip)[0][0]
+    j = np.where(GroupResult[:,1] == trip)[0][0]
     r = int(GroupResult[j,1]-1) * (nVars*2+2)
     if GroupResult[j,1] != GroupResult[j-1,1] and j > 0:
         col = 0
@@ -302,19 +327,138 @@ for trip in Triplicates: #each triplicate
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
-workbook = writeSheet(workbook,'Corr RFU',header,times,dataconv)
-workbook = writeSheet(workbook,'Raw RFU',header,times,data)
+workbook = writeSheet(workbook,'Corr RFU',header,cycle,times,dataconv)
+workbook = writeSheet(workbook,'Raw RFU',header,cycle,times,data)
 dataAverages = averageTriplicates(data,Triplicates,IndResult[:,0])
-workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,times,dataAverages)
+workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,cycle,times,dataAverages)
 
 workbook.close()
 
 
-def averageTriplicates(data,triplicates,individuals):
-    tripAvgs = np.empty((data.shape[0],int(data.shape[1]/3)))
-    for row in range(data.shape[0]):
-        for trip in triplicates:
-            i = int(trip)
-            tripData = [data[row,i] for i,j in enumerate(individuals) if j==trip]
-            tripAvgs[row,i] = np.nanmean(tripData)
-    return tripAvgs
+
+
+
+
+################Graphing################
+
+figpath = os.path.join(path,'Graphs')
+generictitle = file[:-14] + '_'
+try:
+    os.mkdir(figpath)
+except OSError as exc:
+    pass
+
+seaborn.set_palette("bright")
+# current_palette = seaborn.color_palette()
+# seaborn.palplot(current_palette)
+
+####RFU averages and individuals, and inflections, by group
+df = pd.DataFrame(dict(index=IndResult[:,0],
+    triplicate=IndResult[:,3]%8,
+    group=IndResult[:,2],
+    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    inflection1=IndResult[:,4],
+    inflection2=IndResult[:,5],
+    inflection3=IndResult[:,6],
+    inflection4=IndResult[:,7]))
+idg = df.melt(id_vars=['triplicate', 'group','label','index'], var_name='inflection')
+rdf = pd.DataFrame(data)
+rdf.insert(0,'time',times/60)
+
+xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
+
+
+#individual data by group
+for group in Groups:
+    group = int(group)
+    title = generictitle + 'Individuals_' + str(group)
+    for index, individual in enumerate(header):
+        if int(individual[-1:])==group and index not in badWells:
+            if index % 3 == 0: #TODO: label might get skipped if it's a bad well
+                seaborn.lineplot(rdf['time'], rdf[index],label=individual,linewidth=.7)
+            else:
+                seaborn.lineplot(rdf['time'], rdf[index],linewidth=.7)
+    plt.legend(loc='best',fontsize = 'x-small')
+    plt.ylabel('RFU')
+    plt.xlabel('Time (Min)')
+    saveImage(plt,figpath,title)
+
+
+    #average data by group
+for group in Groups:
+    group = int(group)
+    title = generictitle + 'Averages_' + str(group)
+    for index, triplicate in enumerate(triplicateHeaders):
+        if int(triplicate[-1]) == group:
+            listIndsInTrip = np.where(IndResult[:,1] == index)
+            listIndsInTrip = [ elem for elem in listIndsInTrip[0] if elem not in badWells]
+            subdf = rdf[listIndsInTrip]
+            seaborn.lineplot(rdf['time'], subdf.mean(1),label=triplicate,linewidth=.7)
+    plt.legend(loc='best',fontsize = 'x-small')
+    plt.ylabel('RFU')
+    plt.xlabel('Time (Min)')
+    saveImage(plt,figpath,title)
+
+
+#inflection data by group
+for group in Groups:
+    group = int(group)
+    title = generictitle + 'Inflections_' + str(group+1)
+    subidg = idg[(idg['group']==group)]
+    subidg = removeBadWells(badWells, subidg,'index')
+    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=.4)
+    indplt.set(xticklabels=xaxis)
+    plt.legend(loc='best',fontsize = 'x-small')
+    plt.ylabel('Time (Min)')
+    saveImage(plt,figpath,title)
+
+
+#all data colored by group
+adf = pd.DataFrame(columns=['triplicate','group','value'])
+title = generictitle + 'Averages_All'
+for group in Groups:
+    group = int(group)
+    for index, triplicate in enumerate(triplicateHeaders):
+        if int(triplicate[-1]) == group:
+            listIndsInTrip = np.where(IndResult[:,1] == index)
+            listIndsInTrip = [ elem for elem in listIndsInTrip[0] if elem not in badWells]
+            tripdf = pd.DataFrame(dict(value=rdf[listIndsInTrip].mean(1)))
+            tripdf['time'] = times/60
+            tripdf['triplicate'] = index
+            tripdf['group'] = 'Group ' + str(group)
+            adf = adf.append(tripdf,ignore_index=True)
+snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
+plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+handles, labels = snsplt.get_legend_handles_labels()
+plt.legend(handles=handles[1:], labels=labels[1:])
+plt.ylabel('RFU')
+plt.xlabel('Time (Min)')
+saveImage(plt,figpath,title)
+
+
+
+####inflection by number
+
+df = pd.DataFrame(dict(index=IndResult[:,1],
+    triplicate=IndResult[:,3]%8,
+    triplicateIndex=index,
+    group=IndResult[:,2],
+    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    inf1=IndResult[:,4],
+    inf2=IndResult[:,5],
+    inf3=IndResult[:,6],
+    inf4=IndResult[:,7]))
+gd = df.sort_values(by=['triplicate','group'],ascending=True)
+gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
+df = removeBadWells(badWells,gd,'index')
+numGroups = int(int(gd['group'].max()))
+xaxis = [i+1 for i in range(numGroups)]
+xaxis =  xaxis * int(len(IndResult[:,0])/numGroups)
+for inf in range(4):
+    title = generictitle + 'Inflection' + str(inf+1)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=.7)
+    indplt.set(xticklabels=xaxis)
+    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    plt.ylabel('Time (Min)')
+    plt.xlabel('Group Number')
+    saveImage(plt,figpath,title)

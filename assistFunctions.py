@@ -2,6 +2,8 @@
 from scipy.signal import find_peaks
 import numpy as np
 import xlsxwriter
+import matplotlib.pyplot as plt
+import os
 
 def GroupByLabel(header,unique):
     if unique:
@@ -9,6 +11,20 @@ def GroupByLabel(header,unique):
         return [header[x] for x in sorted(indexes)]
     else:
         return header
+
+def saveImage(plt,path,title):
+    plt.title(str(title), fontsize=16)
+    strFile = os.path.join(path, title+'.pdf')
+    if os.path.isfile(strFile):
+        os.remove(strFile)
+    plt.savefig(strFile)
+    plt.close()
+
+def removeBadWells(badWells,df,index):
+    df = df[~df[index].isin(badWells)]
+    return df
+
+
 #
 # def getTwoPeaks(data): #todo: make this even more flexible
 #     for proms in range(30,1,-1): # (50,10,-1):
@@ -44,7 +60,7 @@ def averageTriplicates(data,triplicates,individuals):
             tripAvgs[row,i] = np.nanmean(tripData)
     return tripAvgs
 
-def writeSheet(workbook,name,labels,times,datas):
+def writeSheet(workbook,name,labels,cycle,times,datas):
     datasheet = workbook.add_worksheet(name)
     datasheet.write(0,0,'Cycle')
     datasheet.write(0,1,'Time (Sec)')
@@ -53,7 +69,7 @@ def writeSheet(workbook,name,labels,times,datas):
         datasheet.write(0,i+3,labels[i])
     col = 0
     for row, data in enumerate(times):
-        datasheet.write(row+1, col, data/27)
+        datasheet.write(row+1, col, data/cycle)
         datasheet.write(row+1,col+1,data)
         datasheet.write(row+1,col+2,data/60)
     row = 1
@@ -102,7 +118,7 @@ def smooth(a):
     # a: NumPy 1-D array containing the data to be smoothed
     # WSZ: smoothing window size needs, which must be odd number,
     # as in the original MATLAB implementation
-    WSZ = 13
+    WSZ = 11
     out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
     r = np.arange(1,WSZ-1,2)
     start = np.cumsum(a[:WSZ-1])[::2]/r
