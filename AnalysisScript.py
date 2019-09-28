@@ -343,9 +343,10 @@ workbook.close()
 
 
 ################Graphing################
-
+plt.rcParams['figure.dpi'] = 300
 figpath = os.path.join(path,'Graphs')
-generictitle = file[:-14] + '_'
+generictitle = file[:13]
+
 try:
     os.mkdir(figpath)
 except OSError as exc:
@@ -375,8 +376,8 @@ xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 
 
 #individual data by group #colored by triplicate
-idf = pd.DataFrame(columns=['time','index','value','triplicate'])
 for group in Groups:
+    idf = pd.DataFrame(columns=['time','index','value','triplicate'])
     group = int(group)
     title = generictitle + 'Individuals_' + str(group)
     #TODO: create a subdf with the three lines in a triplicate
@@ -390,9 +391,9 @@ for group in Groups:
             tripdf['triplicate'] = triplicate
             idf = idf.append(tripdf,ignore_index=True,sort=True)
     snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    #plt.legend()
     handles, labels = snsplt.get_legend_handles_labels()
-    plt.legend(handles=handles[1:], labels=labels[1:])
+    plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize='x-small',fancybox=True, framealpha=0.5)
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
     #plt.show()
@@ -446,9 +447,8 @@ for group in Groups:
             tripdf['group'] = 'Group ' + str(group)
             adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
-plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
 handles, labels = snsplt.get_legend_handles_labels()
-plt.legend(handles=handles[1:], labels=labels[1:])
+plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize = 'small',fancybox=True, framealpha=0.5)
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
 #plt.show()
@@ -474,7 +474,6 @@ numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
 # xaxis[:8]
-
 # xt[:8]
 # count = 0
 # xt = []
