@@ -344,6 +344,11 @@ workbook.close()
 
 ################Graphing################
 plt.rcParams['figure.dpi'] = 300
+#params = {'legend.fontsize': 6,
+#          'legend.handlelength': 1,
+#          'figure.dpi' : 300}
+#plt.rcParams.update(params)
+
 figpath = os.path.join(path,'Graphs')
 generictitle = file[:13]
 
@@ -393,7 +398,7 @@ for group in Groups:
     snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
     #plt.legend()
     handles, labels = snsplt.get_legend_handles_labels()
-    plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize='x-small',fancybox=True, framealpha=0.5)
+    plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize='x-small',fancybox=True, framealpha=0.5,prop={'size': 6})
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
     #plt.show()
@@ -410,7 +415,7 @@ for group in Groups:
             listIndsInTrip = [ elem for elem in listIndsInTrip[0] if elem not in badWells]
             subdf = rdf[listIndsInTrip]
             seaborn.lineplot(rdf['time'], subdf.mean(1),label=triplicate,linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small')
+    plt.legend(loc='best',fontsize = 'x-small',prop={'size': 6})
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
     #plt.show()
@@ -425,7 +430,7 @@ for group in Groups:
     subidg = removeBadWells(badWells, subidg,'index')
     indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=1)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small')
+    plt.legend(loc='best',fontsize = 'x-small',prop={'size': 6})
     plt.xlabel('')
     plt.ylabel('Time (Min)')
     #plt.show()
@@ -448,7 +453,7 @@ for group in Groups:
             adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
 handles, labels = snsplt.get_legend_handles_labels()
-plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize = 'small',fancybox=True, framealpha=0.5)
+plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize = 'small',fancybox=True, framealpha=0.5,prop={'size': 6})
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
 #plt.show()
@@ -489,7 +494,7 @@ for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
     indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=1)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5,prop={'size': 6})
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
     #plt.show()
