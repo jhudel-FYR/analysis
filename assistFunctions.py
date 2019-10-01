@@ -50,7 +50,7 @@ def getTwoPeaks(data): #todo: make this even more flexible
             if len(peaks)==2:
                 return peaks,properties
     #peaks,properties = find_peaks(data, prominence=15,width=5)
-    return [peaks,properties]
+    return [[0,0],0]
 
 def averageTriplicates(data,triplicates,individuals):
     tripAvgs = np.empty((data.shape[0],int(data.shape[1]/3)))
