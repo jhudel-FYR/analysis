@@ -17,7 +17,7 @@ def saveImage(plt,path,title):
     strFile = os.path.join(path, title+'.png')
     if os.path.isfile(strFile):
         os.remove(strFile)
-    plt.savefig(strFile,dpi=500)
+    plt.savefig(strFile)
     plt.close()
 
 def removeBadWells(badWells,df,index):
