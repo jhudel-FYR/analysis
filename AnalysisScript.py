@@ -177,7 +177,7 @@ for i in range(m): # 1 to m-1
             #(inflection point) and fitting over the peak half width.
             #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
             xStart = np.maximum(int(locs[k,i]-W[k]),1)
-            xEnd = int(locs[k,i]+W[k])
+            xEnd = np.minimum(int(locs[k,i]+W[k]),len(timediff))
             xRange = xEnd-xStart
 
             #fit a polynomial to the first derivative and retrieve the zero
