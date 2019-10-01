@@ -364,12 +364,7 @@ except OSError as exc:
     pass
 
 #seaborn.set_palette("bright")
-<<<<<<< HEAD
-#TODO: add more colors and keep gray as the first, blue as the last
-manualcolors = ["gray", "darkgreen","cyan","gold","dodgerblue", "red", "lime", "magenta"]
-=======
-manualcolors = ["gray", "darkgoldenrod", "cyan", "crimson", "dodgerblue", "red", "lime", "magenta"]
->>>>>>> 00096b45616c5e403e44dc6f63e3c048811ad352
+manualcolors = ["gray", "darkgreen", "cyan", "gold", "dodgerblue", "red", "lime", "magenta"]
 seaborn.set_palette(manualcolors)
 seaborn.palplot(seaborn.color_palette(manualcolors))
 #seaborn.palplot(seaborn.color_palette())
@@ -440,7 +435,7 @@ for group in Groups:
     group = int(group)
     title = generictitle + 'Inflections_' + str(group)
     subinf = idg[(idg['group']==group)].sort_values(['inflection','triplicate'])
-    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.5, edgecolor='black', linewidth=.7)
+    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
     handles, labels = indplt.get_legend_handles_labels()
     plt.legend(handles=handles[1:], labels=labels[1:])
@@ -485,7 +480,6 @@ df = pd.DataFrame(dict(index=IndResult[:,1],
     inf2=IndResult[:,5],
     inf3=IndResult[:,6],
     inf4=IndResult[:,7]))
-
 gd = df.sort_values(by=['triplicate','group'],ascending=True)
 gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
 gd = removeBadWells(badWells,gd,'index')
@@ -494,11 +488,11 @@ xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.5, edgecolor='black', linewidth=.7)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
     handles, labels = indplt.get_legend_handles_labels()
     plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
-    #plt.show()
+    plt.show()
     saveImage(plt,figpath,title)
