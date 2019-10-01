@@ -177,7 +177,7 @@ for i in range(m): # 1 to m-1
             #(inflection point) and fitting over the peak half width.
             #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
             xStart = np.maximum(int(locs[k,i]-W[k]),1)
-            xEnd = int(locs[k,i]+W[k])
+            xEnd = np.minimum(int(locs[k,i]+W[k]),len(timediff))
             xRange = xEnd-xStart
 
             #fit a polynomial to the first derivative and retrieve the zero
@@ -236,13 +236,14 @@ for i in range(m): # 1 to m-1
     IndResult[i,13] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
     IndResult[i,14:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
 
-
 #each row is a triplicate, each column is a variable, avg then std
 #first column is group, second column is triplicate
 nVars = len(IndResult[0,4:])
 Groups = np.unique(IndResult[:,2])
 Triplicates = np.unique(IndResult[:,3])
 for trip in Triplicates:
+    if trip in badWells:
+        continue
     trip = int(trip)
     col = 0
     for var in range(len(IndResult[0,3:])):
@@ -257,7 +258,6 @@ for trip in Triplicates:
             GroupResult[trip,col] = np.nanstd(triplicateVars)
             col += 1
 
-
 [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
 #background correct data
 BG = [0]*m
@@ -271,7 +271,6 @@ for j in range(m):
     else:
         BG[j] = dataconv[0,j]
     dataconv[:,j] = [i - BG[j] for i in dataconv[:,j]]
-
 
 
 
@@ -343,9 +342,20 @@ workbook.close()
 
 
 ################Graphing################
-plt.rcParams['figure.dpi'] = 300
+params = {'legend.fontsize': 5,
+         'legend.loc': 'best',
+         'legend.framealpha': 0.5,
+         'figure.dpi' : 300,
+         'legend.handlelength': .8,
+         'legend.markerscale': .4,
+         'legend.labelspacing': .4}
+plt.rcParams.update(params)
+# for key in plt.rcParams.keys():
+#     print(key)
+
 figpath = os.path.join(path,'Graphs')
 generictitle = file[:13]
+plt.close()
 
 try:
     os.mkdir(figpath)
@@ -353,8 +363,12 @@ except OSError as exc:
     pass
 
 #seaborn.set_palette("bright")
+<<<<<<< HEAD
 #TODO: add more colors and keep gray as the first, blue as the last
 manualcolors = ["gray", "darkgreen","cyan","gold","dodgerblue", "red", "lime", "magenta"]
+=======
+manualcolors = ["gray", "darkgoldenrod", "cyan", "crimson", "dodgerblue", "red", "lime", "magenta"]
+>>>>>>> 00096b45616c5e403e44dc6f63e3c048811ad352
 seaborn.set_palette(manualcolors)
 seaborn.palplot(seaborn.color_palette(manualcolors))
 #seaborn.palplot(seaborn.color_palette())
@@ -363,17 +377,21 @@ seaborn.palplot(seaborn.color_palette(manualcolors))
 df = pd.DataFrame(dict(index=IndResult[:,0],
     triplicate=IndResult[:,3]%8,
     group=IndResult[:,2],
-    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    label=[triplicateHeaders[int(x)] for x in IndResult[:,1]],
     inflection1=IndResult[:,4],
     inflection2=IndResult[:,5],
     inflection3=IndResult[:,6],
     inflection4=IndResult[:,7]))
-idg = df.melt(id_vars=['triplicate', 'group','label','index'], var_name='inflection')
+idg = df.melt(id_vars=['triplicate','group','label','index'], var_name='inflection')
 rdf = pd.DataFrame(data)
 rdf.insert(0,'time',times/60)
 
-xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
+idg['inflection'] = idg['inflection'].str.replace(r'inflection',r'').astype('int')
+idg = idg.sort_values(['index','inflection'])
+#idg[idg['index']==0]
 
+
+xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 
 #individual data by group #colored by triplicate
 for group in Groups:
@@ -391,9 +409,8 @@ for group in Groups:
             tripdf['triplicate'] = triplicate
             idf = idf.append(tripdf,ignore_index=True,sort=True)
     snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
-    #plt.legend()
     handles, labels = snsplt.get_legend_handles_labels()
-    plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize='x-small',fancybox=True, framealpha=0.5)
+    plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
     #plt.show()
@@ -410,7 +427,6 @@ for group in Groups:
             listIndsInTrip = [ elem for elem in listIndsInTrip[0] if elem not in badWells]
             subdf = rdf[listIndsInTrip]
             seaborn.lineplot(rdf['time'], subdf.mean(1),label=triplicate,linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small')
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
     #plt.show()
@@ -418,14 +434,15 @@ for group in Groups:
 
 
 #inflection data by group
+idg = removeBadWells(badWells, idg,'index')
 for group in Groups:
     group = int(group)
     title = generictitle + 'Inflections_' + str(group)
-    subidg = idg[(idg['group']==group)]
-    subidg = removeBadWells(badWells, subidg,'index')
-    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=1)
+    subinf = idg[(idg['group']==group)].sort_values(['inflection','triplicate'])
+    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.5, edgecolor='black', linewidth=1)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small')
+    handles, labels = indplt.get_legend_handles_labels()
+    plt.legend(handles=handles[1:], labels=labels[1:])
     plt.xlabel('')
     plt.ylabel('Time (Min)')
     #plt.show()
@@ -448,7 +465,7 @@ for group in Groups:
             adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
 handles, labels = snsplt.get_legend_handles_labels()
-plt.legend(handles=handles[1:], labels=labels[1:],loc='best',fontsize = 'small',fancybox=True, framealpha=0.5)
+plt.legend(handles=handles[1:], labels=labels[1:])
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
 #plt.show()
@@ -467,29 +484,19 @@ df = pd.DataFrame(dict(index=IndResult[:,1],
     inf2=IndResult[:,5],
     inf3=IndResult[:,6],
     inf4=IndResult[:,7]))
+
 gd = df.sort_values(by=['triplicate','group'],ascending=True)
 gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
-df = removeBadWells(badWells,gd,'index')
+gd = removeBadWells(badWells,gd,'index')
 numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
-# xaxis[:8]
-# xt[:8]
-# count = 0
-# xt = []
-# for idx,group in enumerate(xaxis):
-#     if (xaxis[idx]-1)==0 and idx > 0:
-#         xt.append('')
-#         count += 1
-#         xt.append(count)
-#     else:
-#         xt.append(count)
-#     count += 1
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=1)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.5, edgecolor='black', linewidth=1)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    handles, labels = indplt.get_legend_handles_labels()
+    plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
     #plt.show()

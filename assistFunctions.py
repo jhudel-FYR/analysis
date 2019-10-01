@@ -17,7 +17,7 @@ def saveImage(plt,path,title):
     strFile = os.path.join(path, title+'.png')
     if os.path.isfile(strFile):
         os.remove(strFile)
-    plt.savefig(strFile,dpi=500)
+    plt.savefig(strFile)
     plt.close()
 
 def removeBadWells(badWells,df,index):
@@ -49,6 +49,7 @@ def getTwoPeaks(data): #todo: make this even more flexible
             peaks,properties = find_peaks(data, prominence=proms,width=width)
             if len(peaks)==2:
                 return peaks,properties
+    #peaks,properties = find_peaks(data, prominence=15,width=5)
     return [[0,0],0]
 
 def averageTriplicates(data,triplicates,individuals):
