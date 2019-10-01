@@ -354,7 +354,7 @@ except OSError as exc:
 
 #seaborn.set_palette("bright")
 #TODO: add more colors and keep gray as the first, blue as the last
-manualcolors = ["gray", "darkgoldenrod","cyan","crimson","dodgerblue", "red", "lime", "magenta"]
+manualcolors = ["gray", "darkgreen","cyan","gold","dodgerblue", "red", "lime", "magenta"]
 seaborn.set_palette(manualcolors)
 seaborn.palplot(seaborn.color_palette(manualcolors))
 #seaborn.palplot(seaborn.color_palette())
