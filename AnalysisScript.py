@@ -55,9 +55,8 @@ if __name__ == '__main__':
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190918f_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190930a_SP'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190916c_AA'
 # cycle = 27
 # cut = 0
 for file in os.listdir(path):
@@ -156,8 +155,8 @@ for i in range(m): # 1 to m-1
         peaks,properties = getTwoPeaks(abs(dLine[:]))
 
         if peaks[0]== 0 and peaks[1] == 0:
-            print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             badWells.append(i)
+            print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             break
 
         locs[:,i] = peaks
@@ -272,8 +271,10 @@ for j in range(m):
         BG[j] = dataconv[0,j]
     dataconv[:,j] = [i - BG[j] for i in dataconv[:,j]]
 
-
-
+# plt.plot(abs(-second[:100,70]))
+# plt.plot(abs(-second[:100,72]))
+# plt.show()
+# IndResult[70:90,4:8]
 
 ## Write data to an excel
 workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput2.xlsx', {'nan_inf_to_errors': True})
@@ -434,7 +435,7 @@ for group in Groups:
     group = int(group)
     title = generictitle + 'Inflections_' + str(group)
     subinf = idg[(idg['group']==group)].sort_values(['inflection','triplicate'])
-    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.5, edgecolor='black', linewidth=1)
+    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.5, edgecolor='black', linewidth=.7)
     indplt.set(xticklabels=xaxis)
     handles, labels = indplt.get_legend_handles_labels()
     plt.legend(handles=handles[1:], labels=labels[1:])
@@ -488,7 +489,7 @@ xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.5, edgecolor='black', linewidth=1)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.5, edgecolor='black', linewidth=.7)
     indplt.set(xticklabels=xaxis)
     handles, labels = indplt.get_legend_handles_labels()
     plt.legend(handles=handles[1:], labels=labels[1:])
