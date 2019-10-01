@@ -386,6 +386,12 @@ idg['inflection'] = idg['inflection'].str.replace(r'inflection',r'').astype('int
 idg = idg.sort_values(['index','inflection'])
 #idg[idg['index']==0]
 
+groupHeaders = []
+previousgroup=0
+for h in triplicateHeaders:
+    if int(h[-1]) > previousgroup:
+        groupHeaders.append(h[7:-6])
+        previousgroup = int(h[-1])
 
 xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 
@@ -457,17 +463,15 @@ for group in Groups:
             tripdf = pd.DataFrame(dict(value=rdf[listIndsInTrip].mean(1)))
             tripdf['time'] = times/60
             tripdf['triplicate'] = index
-            tripdf['group'] = 'Group ' + str(group)
+            tripdf['group'] = 'Group '+str(group)
             adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
 handles, labels = snsplt.get_legend_handles_labels()
-plt.legend(handles=handles[1:], labels=labels[1:])
+plt.legend(handles=handles[1:], labels=[label+'-'+group for label,group in zip(labels[1:],groupHeaders)])
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
 #plt.show()
 saveImage(plt,figpath,title)
-
-
 
 ####inflection by number
 
@@ -494,5 +498,5 @@ for inf in range(4):
     plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
-    plt.show()
+    #plt.show()
     saveImage(plt,figpath,title)
