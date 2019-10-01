@@ -479,7 +479,7 @@ df = pd.DataFrame(dict(index=IndResult[:,1],
     triplicate=IndResult[:,3]%8,
     triplicateIndex=index,
     group=IndResult[:,2],
-    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    Triplicates=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
     inf1=IndResult[:,4],
     inf2=IndResult[:,5],
     inf3=IndResult[:,6],
@@ -492,10 +492,10 @@ xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, marker='o',s=2.6, edgecolor='black', linewidth=.6)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="Triplicates",data=gd, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
-    handles, labels = indplt.get_legend_handles_labels()
-    plt.legend(handles=handles[1:], labels=labels[1:])
+    #handles, labels = indplt.get_legend_handles_labels()
+    #plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
     #plt.show()
