@@ -236,13 +236,14 @@ for i in range(m): # 1 to m-1
     IndResult[i,13] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
     IndResult[i,14:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
 
-
 #each row is a triplicate, each column is a variable, avg then std
 #first column is group, second column is triplicate
 nVars = len(IndResult[0,4:])
 Groups = np.unique(IndResult[:,2])
 Triplicates = np.unique(IndResult[:,3])
 for trip in Triplicates:
+    if trip in badWells:
+        continue
     trip = int(trip)
     col = 0
     for var in range(len(IndResult[0,3:])):
@@ -256,7 +257,6 @@ for trip in Triplicates:
             col += 1
             GroupResult[trip,col] = np.nanstd(triplicateVars)
             col += 1
-
 
 [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
 #background correct data
