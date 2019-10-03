@@ -1,5 +1,5 @@
 import sys
-#sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
+# sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
 
 #packages
 import sys
@@ -443,8 +443,9 @@ for group in Groups:
     subinf = idg[(idg['group']==group)].sort_values(['inflection','triplicate'])
     indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
-    handles, labels = indplt.get_legend_handles_labels()
-    plt.legend(handles=handles[1:], labels=labels[1:])
+    # handles, labels = indplt.get_legend_handles_labels()
+    # plt.legend(handles=handles[1:], labels=labels[1:])
+    plt.legend(title="Triplicates")
     plt.xlabel('')
     plt.ylabel('Time (Min)')
     #plt.show()
