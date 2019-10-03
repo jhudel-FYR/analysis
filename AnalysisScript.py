@@ -55,7 +55,7 @@ if __name__ == '__main__':
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190930a_SP'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190923g_AA'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
 # cycle = 27
 # cut = 0
@@ -195,8 +195,8 @@ for i in range(m): # 1 to m-1
 
             #find where the second rise begins in the first derivative data
             Ie[ip,i] = xStart  #start below the second peak in the smoothed first derivative, find where the rise begins
-            while stillIncreasing(int(Ie[ip,i]),dLine):
-                Ie[ip,i] -= -1
+            while stillIncreasing(int(Ie[ip,i]),dLine) and int(Ie[ip,i]) < len(timediff)-1:
+                Ie[ip,i] += 1
 
             Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
@@ -245,8 +245,8 @@ for trip in Triplicates:
         continue
     trip = int(trip)
     col = 0
-    for var in range(len(IndResult[0,3:])):
-        triplicateVars = [k for j,k in enumerate(IndResult[:,var+3]) if IndResult[j,1] == trip]
+    for var in range(3, len(IndResult[0,:])):
+        triplicateVars = [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
         if var == 0:
             triplicateVars = [k for j,k in enumerate(IndResult[:,2]) if IndResult[j,1] == trip]
             GroupResult[trip,:2] = [triplicateVars[0],trip]
@@ -257,7 +257,6 @@ for trip in Triplicates:
             GroupResult[trip,col] = np.nanstd(triplicateVars)
             col += 1
 
-[k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
 #background correct data
 BG = [0]*m
 for j in range(m):
@@ -277,7 +276,7 @@ for j in range(m):
 # IndResult[70:90,4:8]
 
 ## Write data to an excel
-workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput2.xlsx', {'nan_inf_to_errors': True})
+workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx', {'nan_inf_to_errors': True})
 
 #Create labels for excel sheet
 label = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
@@ -313,7 +312,10 @@ label.extend(['Max slope phase 2 (avg RFU/min)','Max phase slope 2 (std RFU/min)
 
 worksheet = workbook.add_worksheet('Mean Inflections')
 col,r = (0 for i in range(2))
+np.where(GroupResult[:,1] == trip)
 for trip in Triplicates: #each triplicate
+    if not trip in GroupResult[:,1]:
+        continue
     j = np.where(GroupResult[:,1] == trip)[0][0]
     r = int(GroupResult[j,1]-1) * (nVars*2+2)
     if GroupResult[j,1] != GroupResult[j-1,1] and j > 0:
@@ -434,9 +436,8 @@ for group in Groups:
     #plt.show()
     saveImage(plt,figpath,title)
 
-
 #inflection data by group
-idg = removeBadWells(badWells, idg,'index')
+#idg = removeBadWells(badWells, idg,'index')
 for group in Groups:
     group = int(group)
     title = generictitle + 'Inflections_' + str(group)
@@ -475,10 +476,8 @@ plt.xlabel('Time (Min)')
 saveImage(plt,figpath,title)
 
 ####inflection by number
-
 df = pd.DataFrame(dict(index=IndResult[:,1],
     triplicate=IndResult[:,3]%8,
-    triplicateIndex=index,
     group=IndResult[:,2],
     Triplicates=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
     inf1=IndResult[:,4],
@@ -487,7 +486,7 @@ df = pd.DataFrame(dict(index=IndResult[:,1],
     inf4=IndResult[:,7]))
 gd = df.sort_values(by=['triplicate','group'],ascending=True)
 gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
-gd = removeBadWells(badWells,gd,'index')
+#gd = removeBadWells(badWells,gd,'index')
 numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
