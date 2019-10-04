@@ -56,7 +56,7 @@ path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190913a_AA'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190920a_AA'
 # cycle = 27
 # cut = 0
 for file in os.listdir(path):
@@ -255,16 +255,16 @@ for trip in Triplicates:
         GroupResult[trip,col] = np.nanstd(triplicateVars)
         col += 1
 
-
 #Calculate percent differences
 RelDiffs = {1:[], 2:[],3:[],4:[]}
-for inflectionIndex in range(1,5):
-    inflectionIndex = int(inflectionIndex)
+inflectionIndex = 0
+for groupResultsindex in range(2,10,2):
+    inflectionIndex += 1
     previousgroup = 0
     for triplicate in Triplicates:
         triplicate = int(triplicate)
         group = triplicateHeaders[triplicate][-1]
-        tripAverage = GroupResult[triplicate,inflectionIndex+1]
+        tripAverage = GroupResult[triplicate,groupResultsindex]
         if group != previousgroup:
             control = tripAverage
             previousgroup = group
@@ -274,7 +274,6 @@ for inflectionIndex in range(1,5):
         else:
             relativeDifference = 'err'
         RelDiffs[inflectionIndex].append(relativeDifference)
-
 
 #background correct data
 BG = [0]*m
