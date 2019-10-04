@@ -446,7 +446,10 @@ for group in Groups:
     indplt.set(xticklabels=xaxis)
     # handles, labels = indplt.get_legend_handles_labels()
     # plt.legend(handles=handles[1:], labels=labels[1:])
-    plt.legend(title="Triplicates")
+    #plt.legend(title="Triplicates")
+    legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left', borderaxespad=0.)
+    ax = plt.gca().add_artist(legend1)
+    plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
     plt.xlabel('')
     plt.ylabel('Time (Min)')
     #plt.show()
@@ -490,6 +493,7 @@ gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
 numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
 xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
+#plt.legend(handles=handles[1:], labels=[label+'-'+group for label,group in zip(labels[1:],groupHeaders)])
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
     indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="Triplicates",data=gd, marker='o',s=2.6, edgecolor='black', linewidth=.6)
@@ -498,5 +502,8 @@ for inf in range(4):
     #plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
+    legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
+    ax = plt.gca().add_artist(legend1)
+    plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
     #plt.show()
     saveImage(plt,figpath,title)
