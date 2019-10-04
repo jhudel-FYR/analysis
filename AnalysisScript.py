@@ -268,7 +268,7 @@ for inflectionIndex in range(1,5):
         if group != previousgroup:
             control = tripAverage
             previousgroup = group
-        if tripAverage != 0:
+        if tripAverage != 0 and control != 0:
             relativeDifference = abs(tripAverage-control)/((tripAverage+control)/2)
             relativeDifference = relativeDifference * 100
         else:
@@ -554,3 +554,29 @@ for inf in range(4):
     plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
     #plt.show()
     saveImage(plt,figpath,title)
+
+
+#percent differences
+df = pd.DataFrame(RelDiffs)
+df['label'] = triplicateHeaders
+df['group'] = [int(x[-1]) for x in triplicateHeaders]
+pcdf = df.melt(id_vars=['label','group'],var_name='inflection')
+pcdf = pcdf[(pcdf != 'err')]
+pcdf = pcdf.dropna()
+for group in Groups:
+    group = int(group)
+    title = generictitle + 'Inflections%Diff_' + str(group)
+    subpc = pcdf[(pcdf['group']==group)].sort_values(['inflection'])
+    if not subpc.empty:
+        indplt = seaborn.swarmplot(x='inflection', y="value", hue="label", data=subpc, dodge=True, marker='o',s=2.6, edgecolor='black', linewidth=.6)
+        #indplt.set(xticklabels=xaxis)
+        # handles, labels = indplt.get_legend_handles_labels()
+        # plt.legend(handles=handles[1:], labels=labels[1:])
+        #plt.legend(title="Triplicates")
+        box = plt.gca().get_position()
+        plt.gca().set_position([box.x0, box.y0, box.width * 0.75, box.height])
+        plt.legend(bbox_to_anchor =(1, 1), loc='upper left', borderaxespad=0.)
+        plt.xlabel('')
+        plt.ylabel('Percent Difference from Control')
+        #plt.show()
+        saveImage(plt,figpath,title)
