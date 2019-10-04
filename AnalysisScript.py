@@ -55,7 +55,7 @@ if __name__ == '__main__':
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190923g_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190913a_AA'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
 # cycle = 27
 # cut = 0
@@ -237,25 +237,44 @@ for i in range(m): # 1 to m-1
 
 #each row is a triplicate, each column is a variable, avg then std
 #first column is group, second column is triplicate
+GroupResult = np.zeros((int(m/3),28))
 nVars = len(IndResult[0,4:])
 Groups = np.unique(IndResult[:,2])
-Triplicates = np.unique(IndResult[:,3])
+Triplicates = np.unique(IndResult[:,1])
 for trip in Triplicates:
+    trip = int(trip)
     if trip in badWells:
         continue
-    trip = int(trip)
-    col = 0
-    for var in range(3, len(IndResult[0,:])):
+    group = [k for j,k in enumerate(IndResult[:,2]) if IndResult[j,1] == trip]
+    GroupResult[trip,:2] = [group[0],trip]
+    col = 2
+    for var in range(4, len(IndResult[0,:])):
         triplicateVars = [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
-        if var == 0:
-            triplicateVars = [k for j,k in enumerate(IndResult[:,2]) if IndResult[j,1] == trip]
-            GroupResult[trip,:2] = [triplicateVars[0],trip]
-            col += 2
+        GroupResult[trip,col] = np.nanmean(triplicateVars)
+        col += 1
+        GroupResult[trip,col] = np.nanstd(triplicateVars)
+        col += 1
+
+
+#Calculate percent differences
+RelDiffs = {1:[], 2:[],3:[],4:[]}
+for inflectionIndex in range(1,5):
+    inflectionIndex = int(inflectionIndex)
+    previousgroup = 0
+    for triplicate in Triplicates:
+        triplicate = int(triplicate)
+        group = triplicateHeaders[triplicate][-1]
+        tripAverage = GroupResult[triplicate,inflectionIndex+1]
+        if group != previousgroup:
+            control = tripAverage
+            previousgroup = group
+        if tripAverage != 0 and control != 0:
+            relativeDifference = abs(tripAverage-control)/((tripAverage+control)/2)
+            relativeDifference = relativeDifference * 100
         else:
-            GroupResult[trip,col] = np.nanmean(triplicateVars)
-            col += 1
-            GroupResult[trip,col] = np.nanstd(triplicateVars)
-            col += 1
+            relativeDifference = 'err'
+        RelDiffs[inflectionIndex].append(relativeDifference)
+
 
 #background correct data
 BG = [0]*m
@@ -310,25 +329,30 @@ label.extend(['Diff 1 to 3 avg','Diff 1 to 3 std','Diff 2 to 4 avg','Diff 2 to 4
 label.extend(['Max slope phase 1 (avg RFU/min)','Max slope phase 1 (std RFU/min)'])
 label.extend(['Max slope phase 2 (avg RFU/min)','Max phase slope 2 (std RFU/min)'])
 
+
 worksheet = workbook.add_worksheet('Mean Inflections')
 col,r = (0 for i in range(2))
-np.where(GroupResult[:,1] == trip)
+previousgroup = 0
 for trip in Triplicates: #each triplicate
     if not trip in GroupResult[:,1]:
         continue
     j = np.where(GroupResult[:,1] == trip)[0][0]
-    r = int(GroupResult[j,1]-1) * (nVars*2+2)
-    if GroupResult[j,1] != GroupResult[j-1,1] and j > 0:
+    if GroupResult[j,0]==0:
+        continue
+    group = GroupResult[j,0]
+    r = int(group-1) * (nVars*2+2)
+    group = GroupResult[j,0]
+    if j > 0 and group != previousgroup:
         col = 0
+        previousgroup = group
     col += 1
-
     for var in range(nVars*2):
         if var == 0: #Well labels only need to be written in first row once
             worksheet.write(r,col,triplicateHeaders[j])
         r += 1
         if col == 1: #Variable labels only need to be written in first column once
             worksheet.write(r, col-1, label[var])
-        worksheet.write(r,col,GroupResult[j,var+2]) #Variable value
+        worksheet.write(r,col,GroupResult[j,var+4]) #Variable value
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
 
@@ -336,6 +360,24 @@ workbook = writeSheet(workbook,'Corr RFU',header,cycle,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU',header,cycle,times,data)
 dataAverages = averageTriplicates(data,Triplicates,IndResult[:,1])
 workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,cycle,times,dataAverages)
+
+
+worksheet = workbook.add_worksheet('Percent Diffs')
+worksheet.write(0,0,'Triplicate')
+worksheet.write(0,1,'Inflection 1 (% Difference)')
+worksheet.write(0,2,'Inflection 2 (% Difference)')
+worksheet.write(0,3,'Inflection 3 (% Difference)')
+worksheet.write(0,4,'Inflection 4 (% Difference)')
+for inflectionIndex in range(1,5):
+    inflectionIndex = int(inflectionIndex)
+    row = 1
+    for triplicate in Triplicates:
+        triplicate = int(triplicate)
+        worksheet.write(row,0,triplicateHeaders[triplicate])
+        width = len(triplicateHeaders[triplicate])
+        worksheet.set_column(row, 0, width)
+        worksheet.write(row,inflectionIndex,RelDiffs[inflectionIndex][triplicate])
+        row += 1
 
 workbook.close()
 
@@ -512,3 +554,29 @@ for inf in range(4):
     plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
     #plt.show()
     saveImage(plt,figpath,title)
+
+
+#percent differences
+df = pd.DataFrame(RelDiffs)
+df['label'] = triplicateHeaders
+df['group'] = [int(x[-1]) for x in triplicateHeaders]
+pcdf = df.melt(id_vars=['label','group'],var_name='inflection')
+pcdf = pcdf[(pcdf != 'err')]
+pcdf = pcdf.dropna()
+for group in Groups:
+    group = int(group)
+    title = generictitle + 'Inflections%Diff_' + str(group)
+    subpc = pcdf[(pcdf['group']==group)].sort_values(['inflection'])
+    if not subpc.empty:
+        indplt = seaborn.swarmplot(x='inflection', y="value", hue="label", data=subpc, dodge=True, marker='o',s=2.6, edgecolor='black', linewidth=.6)
+        #indplt.set(xticklabels=xaxis)
+        # handles, labels = indplt.get_legend_handles_labels()
+        # plt.legend(handles=handles[1:], labels=labels[1:])
+        #plt.legend(title="Triplicates")
+        box = plt.gca().get_position()
+        plt.gca().set_position([box.x0, box.y0, box.width * 0.75, box.height])
+        plt.legend(bbox_to_anchor =(1, 1), loc='upper left', borderaxespad=0.)
+        plt.xlabel('')
+        plt.ylabel('Percent Difference from Control')
+        #plt.show()
+        saveImage(plt,figpath,title)
