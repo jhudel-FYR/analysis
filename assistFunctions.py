@@ -13,8 +13,8 @@ def GroupByLabel(header,unique):
         return header
 
 def saveImage(plt,path,title):
-    plt.title(str(title), fontsize=16)
-    strFile = os.path.join(path, title+'.pdf')
+    plt.title(str(title), fontsize=14)
+    strFile = os.path.join(path, title+'.png')
     if os.path.isfile(strFile):
         os.remove(strFile)
     plt.savefig(strFile)
@@ -49,6 +49,7 @@ def getTwoPeaks(data): #todo: make this even more flexible
             peaks,properties = find_peaks(data, prominence=proms,width=width)
             if len(peaks)==2:
                 return peaks,properties
+    #peaks,properties = find_peaks(data, prominence=15,width=5)
     return [[0,0],0]
 
 def averageTriplicates(data,triplicates,individuals):

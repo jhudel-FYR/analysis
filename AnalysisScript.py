@@ -1,3 +1,5 @@
+import sys
+# sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
 
 #packages
 import sys
@@ -14,11 +16,8 @@ from scipy.optimize import curve_fit
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from plotnine import *
 import seaborn
 #%matplotlib inline
-#sys.path.insert(0, '/Users/KnownWilderness/.pyenv/versions/3.7.4/lib/python3.7/site-packages')
-
 
 
 sys.path.append('Git/')
@@ -56,9 +55,8 @@ if __name__ == '__main__':
 path = root.filename
 
 # path = '/Users/KnownWilderness/2019/Coding/Fyr'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190918f_AA'
+# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/New Analysis Errors/20190923g_AA'
 # path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190906b_AA'
-# path = '/Users/KnownWilderness/FYR Diagnostics/FYR-Database - Data Science_Analysis/For Claire to Review/Data Analysis Graphs/20190916c_AA'
 # cycle = 27
 # cut = 0
 for file in os.listdir(path):
@@ -157,8 +155,8 @@ for i in range(m): # 1 to m-1
         peaks,properties = getTwoPeaks(abs(dLine[:]))
 
         if peaks[0]== 0 and peaks[1] == 0:
-            print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             badWells.append(i)
+            print('Peaks could not be found in well:',i+1, 'Derivative:',derivative)
             break
 
         locs[:,i] = peaks
@@ -178,7 +176,7 @@ for i in range(m): # 1 to m-1
             #(inflection point) and fitting over the peak half width.
             #fit to a quadratic polynomial, 2D (y = ax^2+bx+c)
             xStart = np.maximum(int(locs[k,i]-W[k]),1)
-            xEnd = int(locs[k,i]+W[k])
+            xEnd = np.minimum(int(locs[k,i]+W[k]),len(timediff))
             xRange = xEnd-xStart
 
             #fit a polynomial to the first derivative and retrieve the zero
@@ -197,8 +195,8 @@ for i in range(m): # 1 to m-1
 
             #find where the second rise begins in the first derivative data
             Ie[ip,i] = xStart  #start below the second peak in the smoothed first derivative, find where the rise begins
-            while stillIncreasing(int(Ie[ip,i]),dLine):
-                Ie[ip,i] -= -1
+            while stillIncreasing(int(Ie[ip,i]),dLine) and int(Ie[ip,i]) < len(timediff)-1:
+                Ie[ip,i] += 1
 
             Y,Istart[ip,i] = getMin(times,timediff[int(Ie[ip,i])])
 
@@ -237,17 +235,18 @@ for i in range(m): # 1 to m-1
     IndResult[i,13] = (IF[3,i] - IF[1,i])/60 #diff of inf 2 and 4
     IndResult[i,14:] = [x/60 for x in Max[:,i]] #max derivative of first and of second derivative
 
-
 #each row is a triplicate, each column is a variable, avg then std
 #first column is group, second column is triplicate
 nVars = len(IndResult[0,4:])
 Groups = np.unique(IndResult[:,2])
 Triplicates = np.unique(IndResult[:,3])
 for trip in Triplicates:
+    if trip in badWells:
+        continue
     trip = int(trip)
     col = 0
-    for var in range(len(IndResult[0,3:])):
-        triplicateVars = [k for j,k in enumerate(IndResult[:,var+3]) if IndResult[j,1] == trip]
+    for var in range(3, len(IndResult[0,:])):
+        triplicateVars = [k for j,k in enumerate(IndResult[:,var]) if IndResult[j,1] == trip]
         if var == 0:
             triplicateVars = [k for j,k in enumerate(IndResult[:,2]) if IndResult[j,1] == trip]
             GroupResult[trip,:2] = [triplicateVars[0],trip]
@@ -258,8 +257,6 @@ for trip in Triplicates:
             GroupResult[trip,col] = np.nanstd(triplicateVars)
             col += 1
 
-
-[k for j,k in enumerate(IndResult[:,var]) if IndResult[j,2] == trip]
 #background correct data
 BG = [0]*m
 for j in range(m):
@@ -273,8 +270,13 @@ for j in range(m):
         BG[j] = dataconv[0,j]
     dataconv[:,j] = [i - BG[j] for i in dataconv[:,j]]
 
+# plt.plot(abs(-second[:100,70]))
+# plt.plot(abs(-second[:100,72]))
+# plt.show()
+# IndResult[70:90,4:8]
+
 ## Write data to an excel
-workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput2.xlsx', {'nan_inf_to_errors': True})
+workbook = xlsxwriter.Workbook(infopath[:-8]+'_AnalysisOutput.xlsx', {'nan_inf_to_errors': True})
 
 #Create labels for excel sheet
 label = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
@@ -285,8 +287,8 @@ label.extend(['Max derivative of first phase (RFU/min)','Max derivative of secon
 worksheet = workbook.add_worksheet('Inflections')
 col,r = (0 for i in range(2))
 for j in range(m): #each experiment
-    r = int(IndResult[j,1]-1) * (nVars+2)
-    if IndResult[j,1] != IndResult[j-1,1] and j > 0:#reset to left for each experiment
+    r = int(IndResult[j,2]-1) * (nVars+2)
+    if IndResult[j,2] != IndResult[j-1,2] and j > 0:#reset to left for each experiment
         col = 0
     col += 1
     for var in range(nVars):
@@ -295,7 +297,7 @@ for j in range(m): #each experiment
         r += 1
         if col == 1: #Variable labels only need to be written in first column once
             worksheet.write(r, 0, label[var])
-        worksheet.write(r,col,IndResult[j,var+2]) #Variable value
+        worksheet.write(r,col,IndResult[j,var+4]) #Variable value
 
 width= np.max([len(i) for i in label])
 worksheet.set_column(0, 0, width)
@@ -310,7 +312,10 @@ label.extend(['Max slope phase 2 (avg RFU/min)','Max phase slope 2 (std RFU/min)
 
 worksheet = workbook.add_worksheet('Mean Inflections')
 col,r = (0 for i in range(2))
+np.where(GroupResult[:,1] == trip)
 for trip in Triplicates: #each triplicate
+    if not trip in GroupResult[:,1]:
+        continue
     j = np.where(GroupResult[:,1] == trip)[0][0]
     r = int(GroupResult[j,1]-1) * (nVars*2+2)
     if GroupResult[j,1] != GroupResult[j-1,1] and j > 0:
@@ -329,7 +334,7 @@ worksheet.set_column(0, 0, width)
 
 workbook = writeSheet(workbook,'Corr RFU',header,cycle,times,dataconv)
 workbook = writeSheet(workbook,'Raw RFU',header,cycle,times,data)
-dataAverages = averageTriplicates(data,Triplicates,IndResult[:,0])
+dataAverages = averageTriplicates(data,Triplicates,IndResult[:,1])
 workbook = writeSheet(workbook,'Raw RFU avgs',triplicateHeaders,cycle,times,dataAverages)
 
 workbook.close()
@@ -340,47 +345,80 @@ workbook.close()
 
 
 ################Graphing################
+params = {'legend.fontsize': 5,
+         'legend.loc': 'best',
+         'legend.framealpha': 0.5,
+         'figure.dpi' : 300,
+         'legend.handlelength': .8,
+         'legend.markerscale': .4,
+         'legend.labelspacing': .4,
+         'font.size': 8}
+plt.rcParams.update(params)
+# for key in plt.rcParams.keys():
+#     print(key)
 
 figpath = os.path.join(path,'Graphs')
-generictitle = file[:-14] + '_'
+generictitle = file[:13]
+plt.close()
+
 try:
     os.mkdir(figpath)
 except OSError as exc:
     pass
 
-seaborn.set_palette("bright")
-# current_palette = seaborn.color_palette()
-# seaborn.palplot(current_palette)
+#seaborn.set_palette("bright")
+manualcolors = ["gray", "darkgreen", "cyan", "gold", "dodgerblue", "red", "lime", "magenta"]
+seaborn.set_palette(manualcolors)
+seaborn.palplot(seaborn.color_palette(manualcolors))
+#seaborn.palplot(seaborn.color_palette())
 
 ####RFU averages and individuals, and inflections, by group
 df = pd.DataFrame(dict(index=IndResult[:,0],
     triplicate=IndResult[:,3]%8,
     group=IndResult[:,2],
-    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    label=[triplicateHeaders[int(x)] for x in IndResult[:,1]],
     inflection1=IndResult[:,4],
     inflection2=IndResult[:,5],
     inflection3=IndResult[:,6],
     inflection4=IndResult[:,7]))
-idg = df.melt(id_vars=['triplicate', 'group','label','index'], var_name='inflection')
+idg = df.melt(id_vars=['triplicate','group','label','index'], var_name='inflection')
 rdf = pd.DataFrame(data)
 rdf.insert(0,'time',times/60)
 
+idg['inflection'] = idg['inflection'].str.replace(r'inflection',r'').astype('int')
+idg = idg.sort_values(['index','inflection'])
+#idg[idg['index']==0]
+
+groupHeaders = []
+previousgroup=0
+for h in triplicateHeaders:
+    if int(h[-1]) > previousgroup:
+        groupHeaders.append(h[7:-2])
+        previousgroup = int(h[-1])
+
 xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
 
-
-#individual data by group
+#individual data by group #colored by triplicate
 for group in Groups:
+    idf = pd.DataFrame(columns=['time','index','value','triplicate'])
     group = int(group)
     title = generictitle + 'Individuals_' + str(group)
-    for index, individual in enumerate(header):
-        if int(individual[-1:])==group and index not in badWells:
-            if index % 3 == 0: #TODO: label might get skipped if it's a bad well
-                seaborn.lineplot(rdf['time'], rdf[index],label=individual,linewidth=.7)
-            else:
-                seaborn.lineplot(rdf['time'], rdf[index],linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small')
+    #TODO: create a subdf with the three lines in a triplicate
+    for index, triplicate in enumerate(triplicateHeaders):
+        if int(triplicate[-1]) == group:
+            listIndsInTrip = np.where(IndResult[:,1] == index)
+            listIndsInTrip = [elem for elem in listIndsInTrip[0] if elem not in badWells]
+            tripdf = rdf[listIndsInTrip]
+            tripdf.insert(0,'time',times/60)
+            tripdf = tripdf.melt(id_vars = 'time',var_name='index')
+            tripdf['triplicate'] = triplicate
+            idf = idf.append(tripdf,ignore_index=True,sort=True)
+    snsplt = seaborn.lineplot(x='time', y='value', hue='triplicate', units='index',estimator=None, data=idf, linewidth=.7)
+    handles, labels = snsplt.get_legend_handles_labels()
+    plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
 
@@ -394,22 +432,30 @@ for group in Groups:
             listIndsInTrip = [ elem for elem in listIndsInTrip[0] if elem not in badWells]
             subdf = rdf[listIndsInTrip]
             seaborn.lineplot(rdf['time'], subdf.mean(1),label=triplicate,linewidth=.7)
-    plt.legend(loc='best',fontsize = 'x-small')
     plt.ylabel('RFU')
     plt.xlabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
-
 #inflection data by group
+#idg = removeBadWells(badWells, idg,'index')
 for group in Groups:
     group = int(group)
-    title = generictitle + 'Inflections_' + str(group+1)
-    subidg = idg[(idg['group']==group)]
-    subidg = removeBadWells(badWells, subidg,'index')
-    indplt = seaborn.stripplot(x="inflection", y="value", hue="label",data=subidg, dodge=True, jitter=True, marker='o',s=4,edgecolor='black',linewidth=.4)
+    title = generictitle + 'Inflections_' + str(group)
+    subinf = idg[(idg['group']==group)].sort_values(['inflection','triplicate'])
+    indplt = seaborn.swarmplot(x="inflection", y="value", hue="label", data=subinf, dodge=True, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small')
+    # handles, labels = indplt.get_legend_handles_labels()
+    # plt.legend(handles=handles[1:], labels=labels[1:])
+    #plt.legend(title="Triplicates")
+    box = plt.gca().get_position()
+    plt.gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left', borderaxespad=0.)
+    ax = plt.gca().add_artist(legend1)
+    plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
+    plt.xlabel('')
     plt.ylabel('Time (Min)')
+    #plt.show()
     saveImage(plt,figpath,title)
 
 
@@ -425,40 +471,44 @@ for group in Groups:
             tripdf = pd.DataFrame(dict(value=rdf[listIndsInTrip].mean(1)))
             tripdf['time'] = times/60
             tripdf['triplicate'] = index
-            tripdf['group'] = 'Group ' + str(group)
-            adf = adf.append(tripdf,ignore_index=True)
+            tripdf['group'] = 'Group '+str(group)
+            adf = adf.append(tripdf,ignore_index=True,sort=True)
 snsplt = seaborn.lineplot(x='time', y='value', hue='group', units='triplicate',estimator=None, data=adf, linewidth=.7)
-plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
 handles, labels = snsplt.get_legend_handles_labels()
-plt.legend(handles=handles[1:], labels=labels[1:])
+plt.legend(handles=handles[1:], labels=[label+'-'+group for label,group in zip(labels[1:],groupHeaders)])
 plt.ylabel('RFU')
 plt.xlabel('Time (Min)')
+#plt.show()
 saveImage(plt,figpath,title)
 
-
-
 ####inflection by number
-
 df = pd.DataFrame(dict(index=IndResult[:,1],
     triplicate=IndResult[:,3]%8,
-    triplicateIndex=index,
     group=IndResult[:,2],
-    label=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
+    Triplicates=[triplicateHeaders[int(x%8)] for x in IndResult[:,1]],
     inf1=IndResult[:,4],
     inf2=IndResult[:,5],
     inf3=IndResult[:,6],
     inf4=IndResult[:,7]))
 gd = df.sort_values(by=['triplicate','group'],ascending=True)
 gd['triplicateIndex'] = int(gd['group'].max())*df['triplicate']+df['group']
-df = removeBadWells(badWells,gd,'index')
+#gd = removeBadWells(badWells,gd,'index')
 numGroups = int(int(gd['group'].max()))
 xaxis = [i+1 for i in range(numGroups)]
-xaxis =  xaxis * int(len(IndResult[:,0])/numGroups)
+xaxis =  xaxis * int(len(IndResult[:,0])/(numGroups))
+#plt.legend(handles=handles[1:], labels=[label+'-'+group for label,group in zip(labels[1:],groupHeaders)])
 for inf in range(4):
     title = generictitle + 'Inflection' + str(inf+1)
-    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="label",data=gd, dodge=True,linewidth=.7)
+    indplt = seaborn.swarmplot(x="triplicateIndex", y='inf'+str(inf+1), hue="Triplicates",data=gd, marker='o',s=2.6, edgecolor='black', linewidth=.6)
     indplt.set(xticklabels=xaxis)
-    plt.legend(loc='best',fontsize = 'x-small',fancybox=True, framealpha=0.5)
+    #handles, labels = indplt.get_legend_handles_labels()
+    #plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
+    box = plt.gca().get_position()
+    plt.gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
+    legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
+    ax = plt.gca().add_artist(legend1)
+    plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
+    #plt.show()
     saveImage(plt,figpath,title)
