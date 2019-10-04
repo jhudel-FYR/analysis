@@ -351,7 +351,8 @@ params = {'legend.fontsize': 5,
          'figure.dpi' : 300,
          'legend.handlelength': .8,
          'legend.markerscale': .4,
-         'legend.labelspacing': .4}
+         'legend.labelspacing': .4,
+         'font.size': 8}
 plt.rcParams.update(params)
 # for key in plt.rcParams.keys():
 #     print(key)
@@ -392,7 +393,7 @@ groupHeaders = []
 previousgroup=0
 for h in triplicateHeaders:
     if int(h[-1]) > previousgroup:
-        groupHeaders.append(h[7:-6])
+        groupHeaders.append(h[7:-2])
         previousgroup = int(h[-1])
 
 xaxis = ['Inflection 1','Inflection 2','Inflection 3','Inflection 4']
@@ -447,6 +448,8 @@ for group in Groups:
     # handles, labels = indplt.get_legend_handles_labels()
     # plt.legend(handles=handles[1:], labels=labels[1:])
     #plt.legend(title="Triplicates")
+    box = plt.gca().get_position()
+    plt.gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
     legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left', borderaxespad=0.)
     ax = plt.gca().add_artist(legend1)
     plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
@@ -502,6 +505,8 @@ for inf in range(4):
     #plt.legend(handles=handles[1:], labels=labels[1:])
     plt.ylabel('Time (Min)')
     plt.xlabel('Group Number')
+    box = plt.gca().get_position()
+    plt.gca().set_position([box.x0, box.y0, box.width * 0.7, box.height])
     legend1 = plt.legend(bbox_to_anchor=(1, 1), loc='upper left')
     ax = plt.gca().add_artist(legend1)
     plt.legend(['Group '+str(idx+1)+'-'+str(label) for idx,label in enumerate(groupHeaders)], bbox_to_anchor=(1, .1), loc='lower left')
