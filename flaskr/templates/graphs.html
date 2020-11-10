@@ -1,0 +1,116 @@
+{% extends "master.html" %}
+
+{% block includes %}
+<script src="{{ url_for('static', filename='js/graphs.js')}}"></script>
+{% endblock %}
+
+{% block title %}
+Graphs for dataset {{id}}
+{% endblock %}
+
+{% block body %}
+
+<div class="formwrapper">
+  <form method="POST" id="graphs-form">
+      <br><br>
+      <div id="graph-features">
+
+          <input type="checkbox" name='rfus' id="rfus"/>
+          <label for="rfus"> RFU graphs </label><br>
+
+          <input type="checkbox" name='inflections' id="inflections"/>
+          <label for="inflections"> Inflection graphs </label><br>
+
+          <input type="checkbox" name='curvefits' id="curvefits"/>
+          <label for="curvefits"> Curve Fit graphs </label><br>
+
+          <input type="checkbox" name='percentdiffs' id="percentdiffs"/>
+          <label for="percentdiffs"> Percent Difference graphs </label><br>
+
+          <input type="checkbox" name='ctthresholds' id="ctthresholds"/>
+          <label for="ctthresholds"> Ct Thresholds </label><br>
+
+          <br>
+          <input type="checkbox" name="subplots" id="subplots"/>
+          <label for="subplots">Subplots On</label><br>
+
+          <label for="vline"> Optional: add a vertical marker at cycle #: </label>
+          <input type="number" name='vline' id="vline" style="width: 4em"/><br>
+
+          <label for="hline"> Optional: add a horizontal marker at RFU #: </label>
+          <input type="number" name='hline' id="hline" style="width: 4em"/><br>
+
+          <input type="checkbox" name="covidstats" id="covidstats"/>
+          <label for="covidstats"> Flash COVID Stats </label><br>
+
+          <input type="checkbox" name="cifill" id="cifill"/>
+          <label for="cifill"> Show 95% CI </label><br>
+
+          <input type="checkbox" name='transparent' id="transparent">
+          <label for="transparent"> Transparent graphs </label><br>
+
+          <input type="checkbox" name='white' id="white"/>
+          <label for="white"> White graphs </label><br>
+
+          <input type="checkbox" name='showmetadata' id="showmetadata"/>
+          <label for="showmetadata"> Show input values </label><br>
+
+        <br>
+      </div>
+        <a name='update' value="update" onclick="disableUpdateLink(this)"><button class="action button" onclick="form.submit()" class="action button">Update</button></a>
+      <br><br>
+
+      <input type="checkbox" name='valid' id="valid">
+      <label for="valid"> Mark this dataset as invalid </label>
+      <br><br>
+
+  </form>
+
+  <button class="action button" onclick="downloadZip(this, '{{ url_for('.zip_download', id=id)}}')">Download ZIP File</button>
+
+</div>
+
+<script>
+
+    const id = '{{ id }}';
+    var features = {{ features|tojson }};
+    document.getElementById('covidstats').checked = features.covidstats == 'on' ? true : false;
+    document.getElementById('ctthresholds').checked = features.ctthresholds == 'on' ? true : false;
+    document.getElementById('transparent').checked = features.transparent == 'on' ? true : false;
+    document.getElementById('white').checked = features.white == 'on' ? true : false;
+    document.getElementById('rfus').checked = features.rfus == 'on' ? true : false;
+    document.getElementById('inflections').checked = features.inflections == 'on' ? true : false;
+    document.getElementById('curvefits').checked = features.curvefits == 'on' ? true : false;
+    document.getElementById('percentdiffs').checked = features.percentdiffs == 'on' ? true : false;
+    document.getElementById('subplots').checked = features.subplots == 'on' ? true : false;
+    document.getElementById('vline').value = features.vline;
+    document.getElementById('valid').value = features.valid == 'on' ? true : false;
+    document.getElementById('cifill').checked = features.cifill == 'on' ? true : false;
+
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div id="graph-container">
+        {%for graph in graphs %}
+            <img class="graph" src="data:image/png;base64,{{graph}}" alt='' width="300">
+        {% endfor %}
+    </div>
+{% endblock %}
+
+<style>
+    div{
+        overflow:hidden;
+    }
+</style>
+
+<br>
+<br>
+
+{% block buttons %}
+<a href="{{ url_for('research.analysis', id=id) }}"><button class="inline action button" >Back</button></a>
+<a href="{{ url_for('research.input', id=id) }}"><button class="inline action button" >Edit Inputs</button></a>
+{% endblock %}

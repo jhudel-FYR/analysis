@@ -1,0 +1,23 @@
+{% extends "master.html" %}
+
+{% block title %}
+Graphs for dataset {{name}}
+{% endblock %}
+
+{% block body %}
+
+{% endblock %}
+
+{% block content %}
+
+{% for item in results %}
+    {{item}}<br>
+{% endfor %}
+
+{% endblock %}
+
+
+{% block buttons %}
+<br>
+  <button class="action button" onclick="goTo('image/')">Colorimetric Home</button>
+{% endblock %}

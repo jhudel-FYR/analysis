@@ -1,0 +1,35 @@
+{% extends "authmaster.html" %}
+
+{% block title %} Edit Account {% endblock %}
+
+{% block body %}
+<script>
+    function validate(input) {
+        if (input.value !== document.getElementById('newpassword').value) {
+            remClass(input, "validinput");
+            addClass(input, "invalidpassword");
+        } else {
+            remClass(input, "invalidpassword");
+            addClass(input, "validinput");
+        }
+    }
+
+</script>
+
+
+<div class="formwrapper">
+  <form action = "{{ url_for('auth.edit') }}" method = "POST">
+      <dl>
+          <dt>Email: </dt> <dd><input name="email" type="text"/></dd>
+          <dt>Username: </dt> <dd><input name="username" type="text"/></dd>
+          <dt>Old Password: </dt><dd><input name="oldpassword" type="password"/></dd>
+          <dt>New Password: </dt><dd><input name="newpassword" id="newpassword" type="password"/></dd>
+          <dt>Confirm New Password: </dt><dd><input name="newpasswordconfirm" id="newpasswordconfirm" type="password" oninput="validate(this)"/></dd>
+      </dl>
+
+          <p><input class="action button" type = "submit" value = "Submit" /></p>
+  </form>
+</div>
+
+<button class="action button" onclick="goTo('')">Back</button>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "master.html" %}
+
+{% block title %}
+{% endblock %}
+
+{% block body %}
+
+{% endblock %}
+
+{% block content %}
+
+{% for item in results %}
+    {{item}}<br>
+{% endfor %}
+
+{% endblock %}
+
+
+{% block buttons %}
+<br>
+  <button class="action button" onclick="goTo('home/')">Genomics Home</button>
+{% endblock %}

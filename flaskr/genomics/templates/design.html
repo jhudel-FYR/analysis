@@ -1,0 +1,185 @@
+{% extends "master.html" %}
+
+{% block title %}
+Genomics Upload
+{% endblock %}
+
+{% block body %}
+
+  <!-- Primer Design -->
+  <form action="{{ url_for('genomics.design') }}" method="POST" enctype="multipart/form-data">
+    <p class="file-input">Sequence (fasta or txt): <input name="sequence" id="sequence" type="file" required/></p>
+
+    Note: all inputs are optional, defaults are shown.
+    <br>In Table 1 a single value can be entered
+    OR a minimum and maximum in the format min-max (i.e. 10-20)<br><br>
+    <table>
+      <caption>Table 1</caption>
+      <tr>
+        <th></th>
+        <th>Forward</th>
+        <th>IR</th>
+        <th>Center</th>
+        <th>IF</th>
+        <th>Reverse</th>
+      </tr>
+
+      <tr>
+        <td>Spacing from Forward</td>
+        <td><input type="text" name="f_spacing0" id="f_spacing0" value="0-300" style="width: 5em"/></td>
+        <td><input type="text" name="f_spacing1" id="f_spacing1" value="0-300" style="width: 5em"/></td>
+        <td><input type="text" name="f_spacing2" id="f_spacing2" value="0-300" style="width: 5em"/></td>
+        <td><input type="text" name="f_spacing3" id="f_spacing3" value="0-300" style="width: 5em"/></td>
+        <td><input type="text" name="f_spacing4" id="f_spacing4" value="0-300" style="width: 5em"/></td>
+        <td>Not configured</td>
+      </tr>
+      <tr>
+        <td>Spacing from Center</td>
+        <td><input type="text" name="c_spacing0" id="c_spacing0" value="0-100" style="width: 5em"/></td>
+        <td><input type="text" name="c_spacing1" id="c_spacing1" value="0-100" style="width: 5em"/></td>
+        <td><input type="text" name="c_spacing2" id="c_spacing2" value="0-100" style="width: 5em"/></td>
+        <td><input type="text" name="c_spacing3" id="c_spacing3" value="0-100" style="width: 5em"/></td>
+        <td><input type="text" name="c_spacing4" id="c_spacing4" value="0-100" style="width: 5em"/></td>
+        <td>Not configured</td>
+      </tr>
+      <tr>
+        <td>Length</td>
+        <td><input type="text" name="length0" id="length0" value="18-22" style="width: 5em"/></td>
+        <td><input type="text" name="length1" id="length1" value="18-22" style="width: 5em"/></td>
+        <td><input type="text" name="length2" id="length2" value="18-25" style="width: 5em"/></td>
+        <td><input type="text" name="length3" id="length3" value="18-22" style="width: 5em"/></td>
+        <td><input type="text" name="length4" id="length4" value="18-22" style="width: 5em"/></td>
+      </tr>
+      <tr>
+        <td>Tm (C)</td>
+        <td><input type="text" name="tm0" id="tm0" value="60-66" style="width: 5em"/></td>
+        <td><input type="text" name="tm1" id="tm1" value="60-66" style="width: 5em"/></td>
+        <td><input type="text" name="tm2" id="tm2" value="60-70" style="width: 5em"/></td>
+        <td><input type="text" name="tm3" id="tm3" value="60-66" style="width: 5em"/></td>
+        <td><input type="text" name="tm4" id="tm4" value="60-66" style="width: 5em"/></td>
+      </tr>
+    </table>
+
+    <br>  <br>
+
+    <table>
+      <caption>Table 2</caption>
+      <tr>
+        <th>Input</th>
+        <th>Value</th>
+        <th>Notes</th>
+      </tr>
+      <tr>
+        <td>Oligo (uM): </td>
+        <td><input type="number" name="oligo" id="oligo" value="1.2" /></td>
+        <td>Not configured</td>
+      </tr>
+      <tr>
+        <td>Na+ Concentration (mM):</td>
+        <td><input type="number" name="na_concentration" id="na_concentration" value="50"/></td>
+      </tr>
+      <tr>
+        <td>Mg Concentration (mM):</td>
+        <td><input type="number" name="mg_concentration" id="mg_concentration" value="8"/></td>
+      </tr>
+      <tr>
+        <td>dNTPS (mM): </td>
+        <td><input type="number" name="dNTPs" id="dNTPs" value="1.4"/></td>
+      </tr>
+      <tr>
+        <td> GC Content (min % - max %):</td>
+        <td><input type="text" name="gc_content" id="gc_content" value="40-60"/></td>
+      </tr>
+      <tr>
+        <td>Primer End Stability: </td>
+        <td><input type="number" name="primer_end_stability" id="primer_end_stability" value="not ready"/></td>
+        <td>Not configured</td>
+      </tr>
+    </table>
+    <br>
+
+      <input class="action button" type="submit" value="Run" />
+      <span id="upload-message2">Run Primer Search</span>
+  </form>
+
+  <br/>
+
+<style>
+  th {
+    text-align: center;
+    }
+</style>
+
+{% endblock %}
+
+{% block content %}
+<table>
+  <tr>
+  {% for char in topstrand %}
+  <td> {{char}}</td>
+  {% endfor %}
+  </tr>
+  <tr>
+  {% for char in bottomstrand %}
+  <td> {{char}}</td>
+  {% endfor %}
+  </tr>
+
+  {% for combo in results %}
+    <tr>
+      {% for primer in combo %}
+         {% if primer.index[0] != primer.index[1] %}
+            {% for char in range(primer.index[0], primer.index[1]) %}
+              <td>.</td>
+            {% endfor %}
+         {% endif %}
+
+        {% for char in primer.string %}
+          <td title="Tm={{primer.info.Tm}}" class="{{primer.info.name}}">{{char}}</td>
+        {% endfor %}
+      {% endfor %}
+    </tr>
+  {% endfor %}
+</table>
+
+<p>Brief description: first we search for possible forward primers. For
+each possible forward primer, we search for possible IR, C, IF, and R primers.
+The first that satisfies our condition (and hasn't been already used)
+  is added to the combination.</p>
+
+<style>
+  .F {
+    color: black;
+  }
+  .IR {
+    color: #124bfc;
+  }
+  .C {
+    color: #00a300;
+  }
+  .IF {
+    color: #b200b2;
+  }
+  .R {
+    color: red;
+  }
+  p{
+    word-wrap: break-word;
+    width: 600pt
+}
+table {
+  border-collapse: collapse;
+}
+td:nth-of-type(10n) {
+  border-right: solid 1px black;
+}
+</style>
+
+{% endblock %}
+
+
+{% block buttons %}
+  <button class="action button" onclick="goTo('genomics/home')">Genomics Home</button>
+{% endblock %}
+
+

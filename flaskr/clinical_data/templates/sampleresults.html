@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FYR SARS-CoV-2 Test Results</title>
+
+</head>
+<body>
+<header class="clearfix">
+    <div id="logo">
+        <img src="{{ image }}" alt=" ">
+
+    </div>
+    <h1>FYR Diagnostics Lab Result</h1>
+    <div id="id_rightside" class="clearfix">
+        <div><span>FYR Diagnostics</span></div>
+        <div><span>1121 East Broadway Street</span></div>
+        <div><span>MonTEC, Suite 155</span></div>
+        <div><span>Missoula, MT 59802</span></div>
+        <div><span><a href="https://www.fyrdiagnostics.com"> fyrdiagnostics.com </a></span></div>
+        <div><span><a href="mailto: testing@fyrdiagnostics.com"> testing@fyrdiagnostics.com</a></span></div>
+    </div>
+    <div id="id_leftside">
+        <div><span>{{ sample.id1_type }} </span> {{ sample.sample_id1 }} </div>
+        <div><span>Provider </span> {{ sample.provider_id }}</div>
+        <div><span>Speciman </span>Anterior Nasal Swab</div>
+        <div><span>CLIA Number </span>27D2190551</div>
+    </div>
+</header>
+<main>
+    <h2>Test Result</h2>
+    <table class="current">
+        <thead>
+        <tr>
+            <th>DATE</th>
+            <th>TEST</th>
+            <th class="result">RESULT</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{ sample.test_date }}</td>
+            <td>{{ sample.test_type }} - (94306-8)</td>
+            <td class="result">{{ sample.converted_report }}</td>
+        </tr>
+        </tbody>
+    </table>
+
+
+    <h2>Previous Results</h2>
+    <table class="previous">
+        <thead>
+        <tr>
+            <th>DATE</th>
+            <th>RESULT</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% if sample.previous_results|length > 0 %}
+            {% for previous in sample.previous_results %}
+                <tr>
+                    <td>{{ previous.date }}</td>
+                    <td>{{ previous.result }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td>No Previous Results</td>
+                <td></td>
+            </tr>
+        {% endif %}
+        </tbody>
+    </table>
+</main>
+
+<footer>
+    <div class="boxed">
+        <h4>FYR Diagnostics - FOR LAB USE ONLY:</h4>
+        FYR ID: {{ sample.fyr_id }} <br>
+        Experiment ID: {{ sample.experiment_id }} <br>
+        {% for targetname, targetvalue in sample.converted_targets.items() %}
+            {{ targetname }} : {{ targetvalue }} <br>
+        {% endfor %}
+        Interpretation: {{ sample.converted_interpretation }} <br>
+    <br>
+    </div>
+<br>
+SARS-CoV-2 RNA (COVID-19), Qualitative NAAT - The SARS-CoV-2 RNA (COVID-19), Nucleic-acid Amplification Test (NAAT) is
+    a qualitative multi-target molecular diagnostics test that aids in the detection of COVID-19.
+A Detected result is considered a positive test result for COVID-19. This indicates that RNA from SARS-CoV-2 was detected and that the patient is considered infected with the virus and presumed to be contagious. If requested by public health authorities, specimens will be send for additional testing.
+• A Not Detected (negative) test result for this test means that SARS-CoV-2 RNA was not present in the specimen above the limit of detection. However, it does not rule out the possibility of COVID-19 and should not be used as the sole basis for patient management decisions.
+• An Inconclusive result means not all of the testing targets were detected. This could be due to a sample with viral concentrations near the limit of detection of the test or other factors. An additional sample collection may be considered.
+Laboratory test results should always be considered in the context of clinical observations and epidemiological data in making a final diagnosis and patient management decisions.
+    Optimum specimen types and timing for peak viral levels during infections caused by 2019-nCoV have not been
+    determined.
+    Collection of multiple specimens from the same patient may be necessary to detect the virus.
+    The possibility of a false negative result should especially be considered if the patient’s recent exposures
+    or clinical presentation suggest that 2019-nCoV infection is possible, and diagnostic tests for other causes
+    of illness (e.g., other respiratory illness) are negative. If 2019-nCoV infection is still suspected,
+    re-testing should be considered in consultation with public health authorities.
+    Negative results do not preclude SARS-CoV-2 infections and should not be used as the sole basis for
+    treatment or other management decisions. Please note this is not a diagnosis and FYR Diagnostics is not providing
+    a diagnosis for any disease. For further assistance and guidance on the test results please contact your healthcare
+    provider.
+</footer>
+
+</body>
+
+</html>
+
+<style>
+    .clearfix:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    a {
+        color: #5D6975;
+        text-decoration: underline;
+    }
+
+    body {
+        position: relative;
+        width: 21cm;
+        height: 27cm;
+        margin: 0 auto;
+        color: #001028;
+        background: #FFFFFF;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        font-family: Arial;
+    }
+
+    header {
+        padding-top: 60px;
+        margin-bottom: 30px;
+    }
+
+    #logo {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    #logo img {
+        width: 150px;
+    }
+
+    h1 {
+        border-top: 1px solid #5D6975;
+        border-bottom: 1px solid #5D6975;
+        color: #5D6975;
+        font-size: 2.4em;
+        line-height: 1.4em;
+        font-weight: normal;
+        text-align: center;
+        margin: 0 0 20px 0;
+    }
+
+    #id_leftside {
+        float: left;
+    }
+
+    #id_leftside span {
+        color: #5D6975;
+        text-align: right;
+        width: 60px;
+        margin-right: 10px;
+        display: inline-block;
+        font-size: 0.8em;
+    }
+
+    #id_rightside {
+        float: right;
+        text-align: right;
+    }
+
+    #id_leftside div,
+    #id_rightside div {
+        white-space: nowrap;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        margin-bottom: 100px;
+    }
+
+    .current tr td {
+        background: #F5F5F5;
+    }
+
+    table th,
+    table td {
+        text-align: center;
+    }
+
+    table th {
+        padding: 5px 20px;
+        color: #5D6975;
+        border-bottom: 1px solid #C1CED9;
+        white-space: nowrap;
+        font-weight: normal;
+    }
+
+    table td {
+        padding: 5px;
+        vertical-align: top;
+    }
+
+    table td.result {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .previous {
+        width: 50%
+    }
+
+    #notices .notice {
+        color: #5D6975;
+        font-size: 1.2em;
+    }
+
+    footer {
+        color: #5D6975;
+        width: 100%;
+        height: 175px;
+        position: absolute;
+        bottom: 0;
+        border-top: 1px solid #5D6975;
+        text-align: center;
+    }
+
+    .boxed {
+        border-bottom: 1px solid #5D6975;
+        text-align: left;
+    }
+
+</style>

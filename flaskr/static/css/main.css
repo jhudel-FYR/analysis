@@ -1,0 +1,227 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #444;
+    margin-left: 10px;
+}
+
+.header {
+    margin-top: 3px;
+    height: 80px;
+    width: 100%;
+}
+
+.header-logo {
+    width: 210px;
+    height: 110px;
+}
+
+h2 {
+    font-size: 2.2em;
+    margin-top: 30px;
+    text-align: center;
+    letter-spacing: -2px;
+}
+
+h3 {
+    font-size: 1.7em;
+    font-weight: 100;
+    margin-top: 30px;
+    text-align: center;
+    letter-spacing: -1px;
+    color: #999;
+}
+p.big {
+    line-height: 8px;
+}
+p.huge {
+    line-height: 16px;
+}
+.error {
+    color: red
+}
+.success {
+    color: limegreen;
+}
+.timing {
+    color: grey
+}
+
+.input-tile {
+    border: 1px solid black;
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;    
+}
+
+.input-selector-grouping {
+    border: 1px solid black;
+    width: 600px;
+    padding: 10px;
+    border-radius: 5px;    
+}
+
+.input-instructions {
+    display: block;
+}
+
+.selected-element {
+    box-shadow: 10px 10px 5px #aaaaaa;
+}
+
+.button {
+    border-radius: 5px;
+    border: none;
+    padding: 8px 18px;
+    text-align: center;
+    text-decoration: none; 
+    display: inline-block;
+    font-size: 16px;
+    width: max-content;
+}
+
+.action {
+    background-color: #14AADB;
+    border: 2px solid #14AADB;
+    color: white;
+}
+
+.neutral {
+    background-color: #295883;
+    border: 2px solid #295883;
+    color: white;
+}
+
+.warning {
+    background-color: #d92e74;
+    border: 2px solid #d92e74;
+    color: white;
+}
+
+.disabled {
+    background-color: #e7e7e7;
+    border: 2px solid #e7e7e7;
+    color: black;
+}
+
+
+.file-input {
+    padding: 4px; 
+    border: 1px solid black;
+    border-radius: 4px;
+}
+
+.validinput {
+    background-color: #4CAF50;
+}
+
+.invalidinput {
+    background-color: orange;
+}
+
+.invalidinput::after {
+    content: "⚠️ Double check that this is the requested file type!";
+    display: block;
+}
+
+.invalidpassword {
+    background-color: red;
+}
+
+.flex-left {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    row-gap: 10px;
+    width: 100%;
+}
+
+.home-content-wrapper {
+    width: 640px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 315px;
+    grid-template-rows: auto;
+    grid-template-areas:
+        'upload dropdown'
+        'upload calendar';
+    column-gap: 30px;
+    row-gap: 30px;
+}
+
+.grid-top-right {
+    grid-area: dropdown;
+    height:100%;
+}
+
+.grid-bottom-right {
+    grid-area: calendar;
+    height:100%;
+}
+
+.grid-left {
+    grid-area: upload;
+}
+
+.grid-left > .input-tile {
+    height: 100%;
+}
+
+/* Center all main content areas. Set contained div to 'display: inline-block' */
+.main-content {
+    margin: 0 auto;
+    text-align: center;
+    width: max-content;
+}
+
+/* left align conent inside the .main-content */
+.align-left {
+    margin: 0 auto;
+    text-align: left;
+}
+
+.align-right {
+    text-align: right;
+}
+
+#analysis {
+    width: 600px;
+}
+
+#graph-container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 900pt;
+}
+
+.graph {
+    width: 300pt;
+}
+
+.inline {
+    display: inline-block;
+}
+
+.nav-analysis, .nav-account {
+    display: flex;
+    justify-content: center;}
+
+.nav-analysis > a, .nav-account > a {
+    margin: 5px;
+}
+
+.button:hover {
+    opacity: .8;
+    color: black;
+}
+
+button:active {
+    background-color: whitesmoke;
+    color: black;
+}
+
+.bottom-nav {
+    margin-top: 40px;
+}

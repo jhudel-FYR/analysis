@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/logo/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/logo/favicon-16x16.png">
+  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css')}}" />
+  <link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/main.css')}}" />
+  <script src="{{ url_for('static', filename='js/scripts.js')}}"></script>
+  {% block includes %}{% endblock %}
+</head>
+
+<body>
+  <div class="header">
+    <a href="/"><img class="header-logo" src="{{ url_for('static', filename='logo/FYR-logo.png') }}" /></a>
+  </div>
+
+<h2>{% block title %}{% endblock %}</h2>
+
+<div class="main-content">
+  <div class="align-left">
+
+    {% block body %}{% endblock %}
+
+    {% block content %}{% endblock %}
+
+    {% block buttons %}{% endblock %}
+
+    <br>
+    <br>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+  <div class="{{ category }}">{{ message }}</div>
+  {% endfor %}
+  {% endwith %}
+  <div class="bottom-nav">
+    <div class="nav-analysis">
+      <a href="/"><button class="neutral button">Home</button></a>
+      <a href="{{ url_for('research.stats', id=id) }}"><button class="neutral button">Statistical Analysis</button></a>
+      <a href="/image"><button class="neutral button">Colorimetric Portal</button></a>
+      <a href="/genomics/home"><button class="neutral button">Genomics Portal</button></a>
+      <a href="/plates/home"><button class="neutral button">Generate Plate Template</button></a>
+    </div>
+    <div class="nav-account">
+      <a href="/auth/logout"><button class="neutral button">Log Out</button></a>
+      <a href="/auth/edit"><button class="neutral button">Edit Account</button></a>
+      <a href="/auth/create"><button class="neutral button">Register New Account</button></a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+
+</html>
+
+

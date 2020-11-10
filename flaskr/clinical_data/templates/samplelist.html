@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Clinical Sample Delivery from {{ provider }}</title>
+    </head>
+    <body>
+    <form action="{{  url_for('research.home') }}">
+        <table class="current">
+            <thead>
+            <tr>
+                <div id="logo">
+                    <img src="{{ image }}" alt=" ">
+                </div>
+                <h1>FYR Diagnostics Sample Check-in</h1>
+                <div id="id_rightside" class="clearfix">
+                    <div><span>FYR Diagnostics</span></div>
+                    <div><span>1121 East Broadway Street</span></div>
+                    <div><span>MonTEC, Suite 155</span></div>
+                    <div><span>Missoula, MT 59802</span></div>
+                    <div><span><a href="https://www.fyrdiagnostics.com"> fyrdiagnostics.com </a></span></div>
+                    <div><span><a href="mailto: testing@fyrdiagnostics.com"> testing@fyrdiagnostics.com</a></span></div>
+                    <br>
+                </div>
+                <div id="id_leftside">
+                    <div><span>Provider </span> {{ provider }}</div>
+                    <div><span>CLIA Number </span>27D2190551</div>
+                </div>
+                <th>FYR ID</th>
+                <th>ID #1</th>
+                <th>ID #2</th>
+                <th>Sample Type</th>
+                <th>Date Collected</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for sample in samples %}
+                <tr>
+                    <td>{{ sample.fyr_id }}</td>
+                    <td>{{ sample.sample_id1 }}</td>
+                    <td>{{ sample.sample_id2 }}</td>
+                    <td>{{ sample.speciman_type }}</td>
+                    <td>{{ sample.date_collected }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+            <tr>
+                <td>Delivered By:</td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2"><span class="signature">Printed Name</span></td>
+                <td colspan="2"><span class="signature">Signature</span></td>
+                <td colspan="2"><span class="date">Date: <span class="line"></span></span></td>
+            <tr>
+                <td>Received By:</td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2"><span class="signature">Printed Name</span></td>
+                <td colspan="2"><span class="signature">Signature</span></td>
+                <td colspan="2"><span class="date">Date: <span class="line"></span></span></td>
+            </tr>
+            </tfoot>
+        </table>
+
+        <span class="bottom_space">
+        <input class="action button" type="submit" value="Submit"/>
+      </span>
+    </form>
+    </main>
+
+    </body>
+
+
+</html>
+
+<style>
+    .clearfix:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    .action {
+        background-color: #14AADB;
+        border: 2px solid #14AADB;
+        color: white;
+        white-space: nowrap;
+    }
+
+    a {
+        color: #5D6975;
+        text-decoration: underline;
+    }
+
+    body {
+        position: relative;
+        width: 21cm;
+        height: 29.7cm;
+        margin: 0 auto 20rem;
+        color: #001028;
+        background: #FFFFFF;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        font-family: Arial;
+    }
+
+    header {
+        padding-top: 60px;
+        margin-bottom: 30px;
+    }
+
+    #logo {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    #logo img {
+        width: 150px;
+    }
+
+    h1 {
+        border-top: 1px solid #5D6975;
+        border-bottom: 1px solid #5D6975;
+        color: #5D6975;
+        font-size: 2.4em;
+        line-height: 1.4em;
+        font-weight: normal;
+        text-align: center;
+        margin: 0 0 20px 0;
+    }
+
+    #id_leftside {
+        float: left;
+    }
+
+    #id_leftside span {
+        color: #5D6975;
+        text-align: right;
+        width: 60px;
+        margin-right: 10px;
+        display: inline-block;
+        font-size: 0.8em;
+    }
+
+    #id_rightside {
+        float: right;
+        text-align: right;
+    }
+
+    #id_leftside div,
+    #id_rightside div {
+        white-space: nowrap;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        margin-bottom: 100px;
+    }
+
+    table tr:nth-child(even) {
+        background: #F5F5F5;
+    }
+
+    table th,
+    table td {
+        text-align: center;
+    }
+
+    table th {
+        padding: 5px 20px;
+        color: #5D6975;
+        border-bottom: 1px solid #C1CED9;
+        white-space: nowrap;
+        font-weight: normal;
+    }
+
+    table td {
+        padding: 3px;
+        vertical-align: top;
+        width: 3px;
+    }
+
+    .signature, .date {
+        vertical-align: bottom;
+        padding-top: 20px;
+        float: left;
+        border-top: 1px solid #000;
+        width: 13rem;
+        text-align: center;
+        font-size: 10px;
+    }
+
+    tfoot {
+        display: table-footer-group;
+        vertical-align: middle;
+        border-color: inherit;
+    }
+
+    .small_input {
+        width: 40px;
+    }
+
+    .bottom_space {
+        margin-bottom: 5cm;
+    }
+
+</style>

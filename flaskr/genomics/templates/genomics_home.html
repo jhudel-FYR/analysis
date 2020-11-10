@@ -1,0 +1,100 @@
+{% extends "master.html" %}
+
+{% block title %}
+Genomics Home
+{% endblock %}
+
+{% block body %}
+
+  <!-- Sequence Search Form -->
+  <form action="{{ url_for('genomics.sequence_search') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-selector-grouping">
+   <h4> Search for Primer Mutations in a Sequence</h4>
+      <span>
+        <p class="file-input">Sequence (FASTA): <input name="fastafile[]" id="fastafile" type="file" multiple required/></p>
+        Use default primers: <input name="default_primers" id="default_primers" type="checkbox" /><br>
+        <p class="file-input">Primers (excel): <input name="primer_list" id="primer_list" type="file"/></p>
+
+        <br><br>
+      </span>
+      <span>
+        <input class="action button" type="submit" value="Run and Download" />
+        <span id="upload-message1">Search for mutations!</span>
+      </span>
+    </div>
+  </form>
+
+  <!-- Cross Reactivity Testing -->
+  <form action="{{ url_for('genomics.cross_reactivity') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-selector-grouping">
+         <h4> Cross Reactivity Testing</h4>
+      Hit 'Run' to use the default primers and the default sequences. OR, upload a new list of primers and/or sequence.
+      <span>
+        <p class="file-input">Sequence (FASTA): <input name="fastafile" id="fastafile_cr" type="file"/></p>
+          Use default primers: <input name="default_primers" id="default_primers_cr" type="checkbox" checked/><br>
+          <p class="file-input">Primers (excel): <input name="primer_list" id="primer_list_cr" type="file"/></p>
+      </span>
+      <span>
+        <input class="action button" type="submit" value="Run" />
+        <span id="upload-message_cr">Test your primers!</span>
+      </span>
+    </div>
+  </form>
+
+    <!-- BLAST Homology Analyzer -->
+    <form action="{{ url_for('genomics.BLAST_analyzer') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-selector-grouping">
+         <h4> BLAST Homology Analyzer</h4>
+      Select the name of primer being analyzed OR upload a new primer name and sequence.
+      <span>
+        <p class="file-input">BLAST Hit Table (.csv):  <input name="hittable" id="hittable" type="file" required/></p>
+
+       Select Primer:  <span id="dropdowncontainer" class="input-selector-container">
+      <select id="primer_select" oninput="attachDateOpts(this.value)">
+        <option name="None">Please Select </option>
+        {% for primer in primers %}
+        <option name={{primer.name}}> {{primer.name}} </option>
+        {% endfor %}
+      </select>
+    </span>
+    <span class="selected-experiment-preview"><b>No Selection</b></span>
+      </span>
+        <br>
+        <br>
+        Add New Primer:
+        <br><br>Primer Name:  <th><input id="primername" name="primername" type="text"/></th>
+
+        <br><br>Primer Sequence:  <th><input id="primerseq" name="primerseq" type="text"/></th>
+
+        <br><br>BLAST Word Size:  <th><input id="wrd_sze" name="wrd_sze" type="number"/></th>
+        <br><br>
+      <span>
+        <input class="action button" type="submit" value="Submit" />
+        <span id="upload-message_Bh">Calculate Homology!</span>
+      </span>
+    </div>
+  </form>
+
+
+  <br/>
+{% endblock %}
+
+{% block content %}
+
+{% endblock %}
+
+<style>
+    img{
+        max-width: 300pt;
+        max-height: 300pt;
+        width: 100%;
+        margin:auto;
+        display:block;
+        padding-top: 0%;
+    }
+</style>
+
+{% block buttons %}
+  <button class="action button" onclick="goTo('genomics/design')">Go to Primer Design</button>
+{% endblock %}
+

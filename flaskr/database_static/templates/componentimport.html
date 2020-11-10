@@ -1,0 +1,33 @@
+{% extends "master.html" %}
+
+{% block title %} Import {% endblock %}
+
+{% block body %}
+<style>
+p.big {
+line-height: 8px;
+}
+</style>
+<br>
+
+Please upload a file that contains the following information.<br>
+For Component upload: component type in the first column, name in the second column, and the unit in the third.<br>
+For Base Assay upload: dataset name in the second column, target in the third
+
+<br>
+If you would like to associate this component with the base protocol, enter 1
+--or the integer of your choice--into the fourth column.
+
+<div class="formwrapper">
+  <form method = "POST" enctype="multipart/form-data">
+      <p><input name="file" id="componentfile" type="file"/></p>
+     <p><input type = "submit" value = "Import" /></p>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block buttons %}{% endblock %}
+
+

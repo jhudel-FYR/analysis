@@ -1,0 +1,44 @@
+{% extends "master.html" %}
+
+{% block title %}
+Image Upload {{name}}
+{% endblock %}
+
+{% block body %}
+
+  <!-- File Upload form -->
+  <form action="{{ url_for('image.upload') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-selector-grouping">
+    <span class="input-instructions">Upload an image:</span>
+      <span>
+        <p class="file-input">Colorimetric: <input name="imagefile" id="colorimetricfile" type="file"/></p>
+      </span>
+      <span>
+        <input class="action button" type="submit" value="Upload" />
+        <span id="upload-message2">Upload image here!</span>
+      </span>
+    </div>
+  </form>
+
+  <br/>
+{% endblock %}
+
+{% block content %}
+
+{% endblock %}
+
+<style>
+    img{
+        max-width: 300pt;
+        max-height: 300pt;
+        width: 100%;
+        margin:auto;
+        display:block;
+        padding-top: 0%;
+    }
+</style>
+
+{% block buttons %}
+  <button class="action button" onclick="goTo('image/analysis')">Run Machine Learning</button>
+{% endblock %}
+

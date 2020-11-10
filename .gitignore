@@ -1,0 +1,9 @@
+.idea
+/flaskr/config.py
+__pycache__/
+*.log
+.vscode
+node_modules/
+env/
+/flaskr/static/build/
+/flaskr/buildspec.yml

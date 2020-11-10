@@ -1,0 +1,44 @@
+{% extends "master.html" %}
+
+{% block title %}
+Graphs for dataset {{name}}
+{% endblock %}
+
+{% block body %}
+{% endblock %}
+
+{% block content %}
+
+<div class="formwrapper">
+  <form action = "{{ url_for('image.edit', name=name, id=id) }}" method="POST" enctype="multipart/form-data">
+    {%for image in results %}
+      {% if image.graph %}
+        <img src="data:image/png;base64,{{image.graph}}" alt='' ><br>
+      {% endif %}
+
+      {% if image.color %}
+      Detected color: {{image.color}} <br>
+      <label for="label"> Corrected label (red or yellow): </label>
+      <input type="text" name='label {{image.index}}' id="label">
+      {% endif %}
+      <input type="checkbox" name='valid {{image.index}}' id="valid">
+      <label for="valid"> Invalid </label><br><br>
+    {% endfor %}
+
+      <br><input class="action button" type="submit" value="Submit Edits" /><br>
+  </form>
+</div>
+{% endblock %}
+
+<style>
+    img{
+        max-width: 100pt;
+        max-height: 50pt;
+        width: 100%;
+    }
+</style>
+
+{% block buttons %}
+<br>
+  <button class="action button" onclick="goTo('image/')">Colorimetric Home</button>
+{% endblock %}

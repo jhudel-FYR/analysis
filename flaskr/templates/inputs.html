@@ -1,0 +1,244 @@
+{% extends "master.html" %}
+
+{% block includes %}
+<link type="text/css" rel="stylesheet" href="{{ url_for('static', filename='css/input.css')}}" />
+<script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inputs.js') }}"></script>
+<script src="{{ url_for('static', filename='js/selection.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/rivets.bundled.min.js') }}"></script>
+{% endblock %}
+
+{% block title %} Data Analysis {% endblock %}
+
+{% block body %}
+
+<div id="focus" class="hidden"></div>
+<h3>Parameters for {{id}}</h3>
+<br>
+<div class="formwrapper">
+    <form action="{{ url_for('.input', id=id) }}"  method="POST" onsubmit="prepareSubmission(event)">
+        <div class="input-grid-container">
+            <span class="exp-type-opts input-grid-area">
+                <b>Experiment Type:</b><br>
+                <input type="radio" id="COVID" name="exp_type" value="COVID" autocomplete="off" required>
+                <label for="COVID">COVID-19</label></br>
+                <input type="radio" id="RT-PCR" name="exp_type" value="RT-PCR" autocomplete="off" required>
+                <label for="RT-PCR">RT-PCR</label></br>
+                <input type="radio" id="gPCR" name="exp_type" value="gPCR" autocomplete="off" required>
+                <label for="gPCR">gPCR</label></br>
+                <input type="radio" id="UDAR" name="exp_type" value="UDAR" autocomplete="off" required>
+                <label for="UDAR">UDAR</label></br>
+                <input type="radio" id="OTHER" name="exp_type" value="OTHER" autocomplete="off" required>
+                <label for="OTHER">Other</label></br>
+            </span>
+    
+            <span class="extra-opts input-grid-area">
+                <b>Options:</b><br>
+                <input type="checkbox" id="COVID default" name="COVID default" value="COVID default">
+                <label for="COVID default">COVID-19 default 96 plate setup</label></br>
+
+                <input type="checkbox" name="base-assay" autocomplete="off" />
+                <label>This is a base assay.</label></br>
+
+                <input type="checkbox" id="testing" name="testing" value="True">
+                <label for="testing" id="resetlabel">Test run - don't save dataset information</label><br/>
+
+                <label for="cutlength">Fluorescence Error Cut Time</label>
+                <input name="cutlength" placeholder="default=0" type="text"/><br/>
+
+            </span>
+
+    
+            <div class="edit-components input-grid-area">
+                <table>
+                    <thead>
+                    <tr>
+                        <th> Type</th>
+                        <th> Component</th>
+                        <th> Quantity</th>
+                        <th> Unit</th>
+                    </tr>
+                    </thead>
+        
+                    <tbody>
+                        <th><select id="typetemplate" name="Type" onchange="refreshNames()">
+                                <option value="None">Please Select</option>
+                                {% for type, items in components.items() %}
+                                <option value={{type}}>{{type}}</option>
+                                {% endfor %}
+                            </select></th>
+                        <th><select id="nametemplate" name="Component"  onchange="refreshUnit()">
+                                {% for item in components['Target'] %}
+                                <option value={{item[0]}}>{{item[0]}}</option>
+                                {% endfor %}
+                            </select></th>
+                        <th><input id="quantitytemplate" name="Quantity" type="number"/></th>
+                        <th><input id="unittemplate" name="Unit" type="text"/></th>
+                    </tbody>
+        
+                    <tfooter>
+                        <tr><td>
+                            <input onclick="addOne('component')" type="button" value="Add component"/><br>
+                            <input onclick="deleteOne('component')" type="button" value="Delete last component"/>
+                        </td></tr>
+                    </tfooter>
+        
+                </table>
+                <p id="component"></p>
+            </div>
+            
+
+            <div id="plate-editor-container" class="input-grid-area">
+
+                <div id="plate-editor-btn-container">
+                    <input type="button" class="action button editor-selectors" id="well-swap-btn" value="Swap Wells" onclick="changeEditor(this.id, 'swaps');" />
+                    <input type="button" class="action button editor-selectors" id="mark-errors-btn" value="Mark Error Wells" onclick="changeEditor(this.id, 'errors');" />
+                    <input type='button' class="action button editor-selectors" id="group-editor-btn" value="Group Editor" onclick="changeEditor(this.id, 'groups');" />
+                    <input type='button' class="action button editor-selectors active-editor" id="editor-summary-btn" value="Summary" onclick="changeEditor(this.id, 'summary');" />
+                </div>
+
+            </div>
+        </div>
+        
+        <input type="hidden" id="json" name="json"/>
+        <p><input id="submit-btn" class="action button" name='Run' type="submit" value="Run Analysis"/></p>
+    </form>
+</div>
+
+<!-- Templates for building the plate editor -->
+
+<template id="tmp-cpanel-swapper">
+    <div class="summary-details">
+        <div class ="title">
+            <span class="info-title">Active Swaps:</span>
+            <input type="button" class="warning button" value="Reset Swaps" onclick="resetSwaps()" />
+        </div>
+        <div id="swapped-wells-summary"></div>
+    </div>
+</template>
+
+<template id="tmp-cpanel-errors">
+    <div class="summary-details">
+        <span class="info-title">Marked Errors:</span>
+        <input type="button" class="warning button" value="Reset Errors" onclick="resetErrors()" />
+        <div id="error-wells-summary"></div>
+    </div>
+</template>
+
+<template id="tmp-cpanel-groups">
+    <div class="summary-details">
+        <div class="gr-buttons">
+            <input type="button" class="action button group-tabs" id="gr-sel-def-btn" value="Default Groups" onclick="useDefault();setActiveButton(this.id, '.group-tabs')" />
+            <input type="button" class="action button group-tabs" id="gr-sel-cus-btn" value="Custom Groups" onclick="useCustom(); setActiveButton(this.id, '.group-tabs')" />
+        </div>
+        <div id="selection-confirmation" class="hidden">
+            <div class="message-holder">
+                <span id="msg-color" class="hidden"></span>
+                <span id="message"></span>
+            </div>
+            <input id="confirm-select-btn" type="button" class="action button" value="Confirm" />
+            <input type="button" class="warning button" value="Cancel" onclick="cancelSelection()"/>
+        </div>
+        <div id="cpanel-groups" class="gr-flex"></div>
+    </div>
+</template>
+
+<template id="tmp-cpanel-summary">
+    <div class="summary-details">
+        <div id="groups-summary" class="gr-flex"></div>
+        <br>
+        <div id="swapped-wells-summary">
+            <div class ="title">
+                <span class="info-title">Active Swaps:</span>
+            </div>
+        </div>
+        <br>
+        <div id="error-wells-summary">
+            <div class ="title">
+                <span class="info-title">Marked Errors:</span>
+            </div>
+        </div>
+        <br>
+        <input type="button" class="warning button" value="Reset All" onclick="resetAll()" />
+    </div>
+</template>
+
+<template id="tmp-add-gr-btn">
+    <input class="action button" type="button" value="+" onclick="addGroup()" />
+</template>
+
+<template id="tmp-group-row-summary">
+    <div class="group-label gr-number"></div>
+</template>
+
+<template id="tmp-rep-row-summary">
+    <div class="gr-row-grid">
+        <span class="triangle"></span>
+        <span class="rep-label"></span>
+        <span class="rep-designation"></span>
+    </div>
+</template>
+
+<template id="tmp-rep-row-editable">
+    <div class="gr-row-grid">
+        <span class="triangle"></span>
+        <input class="gr-name-input gr-rep-label" type="text" name="gr-label"/>
+        <span>
+            <select class="gr-designation">
+                <option value="UNK">UNK</option>
+                <option value="POS">POS</option>
+                <option value="NEG">NEG</option>
+                <option value="NTC">NTC</option>
+            </select>
+            <img src="{{ url_for('static', filename='images/icons/x-square-fyr-warning.svg') }}" class='rep-row-btn' >
+        </span>
+    </div>
+</template>
+
+<template id="tmp-swap-row">
+    <div class="swap-row">
+        <span class="swap-left"></span>
+        <span class="swap-right"></span>
+    </div>
+</template>
+
+<template id="tmp-error-row">
+    <div class="error-row"></div>
+</template>
+
+
+<script type="text/javascript">
+    function refreshNames() {
+        var componenttypes = {{ components | tojson }};
+        var type = $(`#typetemplate`).val();
+        $('#nametemplate').empty();
+        componenttypes[type].forEach(function(item){
+            $('#nametemplate').append("<option>" + item.name + "</option>");
+        });
+        refreshUnit()
+    }
+
+    function refreshUnit() {
+        var componenttypes = {{ components | tojson }};
+        var type = $(`#typetemplate`).val()
+        var name = $(`#nametemplate`).val()
+        componenttypes[type].forEach(function(item){
+            if (item.name == name) {
+                $(`#unittemplate`).val(item.unit)
+            }
+        });
+    }
+    
+    const dataset = {{ experiment | tojson }}
+    const wells = {{ wells.metadata_to_json() | safe }}
+    const testGroups = [{"id":1,"wells":[{"excelheader":"A01"},{"excelheader":"A02"},{"excelheader":"A03"},{"excelheader":"A04"},{"excelheader":"A05"},{"excelheader":"A06"},{"excelheader":"A07"},{"excelheader":"A08"},{"excelheader":"A09"},{"excelheader":"A10"},{"excelheader":"A11"},{"excelheader":"A12"},{"excelheader":"B01"},{"excelheader":"B02"},{"excelheader":"B03"},{"excelheader":"B04"},{"excelheader":"B05"},{"excelheader":"B06"},{"excelheader":"B07"},{"excelheader":"B08"},{"excelheader":"B09"},{"excelheader":"B10"},{"excelheader":"B11"},{"excelheader":"B12"}],"replicates":[{"id":1,"wells":[{"excelheader":"A01"},{"excelheader":"A02"},{"excelheader":"A03"},{"excelheader":"A04"},{"excelheader":"B01"},{"excelheader":"B02"},{"excelheader":"B03"},{"excelheader":"B04"}],"label":"Tequila","designation":"NEG"},{"id":2,"wells":[{"excelheader":"A05"},{"excelheader":"B05"},{"excelheader":"A07"},{"excelheader":"B07"},{"excelheader":"A09"},{"excelheader":"B09"},{"excelheader":"A11"},{"excelheader":"B11"}],"label":"Cointreau","designation":"POS"},{"id":3,"wells":[{"excelheader":"A06"},{"excelheader":"A08"},{"excelheader":"A10"},{"excelheader":"A12"},{"excelheader":"B06"},{"excelheader":"B08"},{"excelheader":"B10"},{"excelheader":"B12"}],"label":"Lime","designation":"NTC"}],"repCnt":3},{"id":2,"wells":[{"excelheader":"C01"},{"excelheader":"C02"},{"excelheader":"C03"},{"excelheader":"C04"},{"excelheader":"C05"},{"excelheader":"C06"},{"excelheader":"C07"},{"excelheader":"C08"},{"excelheader":"C09"},{"excelheader":"C10"},{"excelheader":"C11"},{"excelheader":"C12"},{"excelheader":"D01"},{"excelheader":"D02"},{"excelheader":"D03"},{"excelheader":"D04"},{"excelheader":"D05"},{"excelheader":"D06"},{"excelheader":"D07"},{"excelheader":"D08"},{"excelheader":"D09"},{"excelheader":"D10"},{"excelheader":"D11"},{"excelheader":"D12"}],"replicates":[{"id":1,"wells":[{"excelheader":"C01"},{"excelheader":"C02"},{"excelheader":"C03"},{"excelheader":"C04"},{"excelheader":"D01"},{"excelheader":"D02"},{"excelheader":"D03"},{"excelheader":"D04"}],"label":"Dogs","designation":"POS"},{"id":2,"wells":[{"excelheader":"C05"},{"excelheader":"C06"},{"excelheader":"C07"},{"excelheader":"C08"},{"excelheader":"D05"},{"excelheader":"D06"},{"excelheader":"D07"},{"excelheader":"D08"}],"label":"Cats","designation":"UNK"},{"id":3,"wells":[{"excelheader":"C09"},{"excelheader":"C10"},{"excelheader":"C11"},{"excelheader":"C12"},{"excelheader":"D09"},{"excelheader":"D10"},{"excelheader":"D11"},{"excelheader":"D12"}],"label":"Lab Rats","designation":"NTC"}],"repCnt":3},{"id":3,"wells":[{"excelheader":"E01"},{"excelheader":"E02"},{"excelheader":"E03"},{"excelheader":"E04"},{"excelheader":"E05"},{"excelheader":"E06"},{"excelheader":"E07"},{"excelheader":"E08"},{"excelheader":"E09"},{"excelheader":"E10"},{"excelheader":"E11"},{"excelheader":"E12"},{"excelheader":"G01"},{"excelheader":"G02"},{"excelheader":"G03"},{"excelheader":"G04"},{"excelheader":"G05"},{"excelheader":"G06"},{"excelheader":"G07"},{"excelheader":"G08"},{"excelheader":"G09"},{"excelheader":"G10"},{"excelheader":"G11"},{"excelheader":"G12"}],"replicates":[{"id":1,"wells":[{"excelheader":"E01"},{"excelheader":"E02"},{"excelheader":"E03"},{"excelheader":"E04"},{"excelheader":"E05"},{"excelheader":"E06"},{"excelheader":"E07"},{"excelheader":"E08"},{"excelheader":"E09"},{"excelheader":"E10"},{"excelheader":"E11"},{"excelheader":"E12"}],"label":"alpha","designation":"NEG"},{"id":2,"wells":[{"excelheader":"G01"},{"excelheader":"G02"},{"excelheader":"G03"},{"excelheader":"G04"},{"excelheader":"G05"},{"excelheader":"G06"},{"excelheader":"G07"},{"excelheader":"G08"},{"excelheader":"G09"},{"excelheader":"G10"},{"excelheader":"G11"},{"excelheader":"G12"}],"label":"bravo","designation":"POS"}],"repCnt":2},{"id":5,"wells":[{"excelheader":"F01"},{"excelheader":"F02"},{"excelheader":"F03"},{"excelheader":"F04"},{"excelheader":"F05"},{"excelheader":"F06"},{"excelheader":"F07"},{"excelheader":"F08"},{"excelheader":"F09"},{"excelheader":"F10"},{"excelheader":"F11"},{"excelheader":"F12"},{"excelheader":"H01"},{"excelheader":"H02"},{"excelheader":"H03"},{"excelheader":"H04"},{"excelheader":"H05"},{"excelheader":"H06"},{"excelheader":"H07"},{"excelheader":"H08"},{"excelheader":"H09"}],"replicates":[{"id":1,"wells":[{"excelheader":"F01"},{"excelheader":"F02"},{"excelheader":"F03"},{"excelheader":"F04"},{"excelheader":"F05"},{"excelheader":"F06"}],"label":"Covid19","designation":"UNK"},{"id":2,"wells":[{"excelheader":"F07"},{"excelheader":"F08"},{"excelheader":"F09"},{"excelheader":"F10"},{"excelheader":"F11"},{"excelheader":"F12"}],"label":"Covid20","designation":"UNK"},{"id":3,"wells":[{"excelheader":"H01"},{"excelheader":"H02"},{"excelheader":"H03"},{"excelheader":"H04"},{"excelheader":"H05"}],"label":"Covid21","designation":"UNK"},{"id":4,"wells":[{"excelheader":"H06"},{"excelheader":"H07"},{"excelheader":"H08"},{"excelheader":"H09"}],"label":"Covid22","designation":"UNK"}],"repCnt":4}]
+</script>
+
+
+{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block buttons %}{% endblock %}
+

@@ -1,0 +1,44 @@
+{% extends "master.html" %}
+
+{% block title %} Data Analysis {% endblock %}
+
+{% block body %}
+
+<br>
+<div id="analysis">
+  <div class="formwrapper">
+    <form action = "{{ url_for('research.analysis', id=id) }}" method = "POST">
+    </form>
+  </div>
+  <br>
+
+  <p class="">
+    {% for key, value in results.items() %}
+      {{ key }}: {{ value }} <br>
+    {% endfor %}
+  </p>
+
+
+  <br>
+  {% endblock %}
+
+  {% block content %}
+  {% endblock %}
+
+</div>
+
+<script>
+  function disableGraphLink(link) {
+    link.firstChild.innerHTML = "Loading Graphs..."
+    disableLink(link)
+  }
+</script>
+
+
+{% block buttons %}
+<a href="{{ url_for('.graphs', id=id) }}" onclick="disableGraphLink(this)"><button class="action button" >View Graphs</button></a>
+<a href="{{ url_for('.input', id=id) }}"><button class="action button" >Edit Inputs</button></a>
+<a href="{{ url_for('.stats') }}"><button class="action button" >Statistical Analysis</button></a>
+{% endblock %}
+
+

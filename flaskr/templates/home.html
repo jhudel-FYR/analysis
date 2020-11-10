@@ -1,0 +1,119 @@
+{% extends "master.html" %}
+
+{% block includes %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/flatpickr_material_blue.css')}}">
+<script src="{{ url_for('static', filename='js/flatpickr.js')}}"></script>
+<script src="{{ url_for('static', filename='js/home.js')}}"></script>
+{% endblock %}
+
+{% block title %} Welcome to the FYR Internal App {% endblock %}
+
+{% block body %}
+
+<br>
+
+<div class="home-content-wrapper">
+
+  <!-- File Upload form -->
+  <form class="grid-bottoom-left" action="{{ url_for('clinical.samplelist') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-tile">
+      <div class="input-instructions">Upload a sample list:</div>
+      <div>
+        <p class="file-input">Sample List:
+          <br/>
+          <input name="files" id="sample_list" type="file" autocomplete="off" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
+        </p>
+      </div>
+        <input class="action button" type="submit" value="Upload" />
+    </div>
+  </form>
+
+  <!-- File Upload form -->
+  <form class="grid-left" action="{{ url_for('research.upload') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-tile">
+      <div class="input-instructions">Upload a new Experiment:</div>
+      <div>
+        <p class="file-input">INFO File:
+          <br/>
+          <input name="file1" id="infofile" type="file" oninput="validateFile(this, 'info')" autocomplete="off" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
+        </p>
+        <p class="file-input">RFU File: 
+          <br/>
+          <input name="file2" id="rfufile" type="file" oninput="validateFile(this, 'rfu')" autocomplete="off" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
+        </p>
+          <p>
+              <label for="official_results">Get COVID Sample Results</label>
+              <input id="official_results" name='official_results' type="checkbox"/>
+          </p>
+      </div>
+        <input class="action button" type="submit" value="Upload" />
+    </div>
+  </form>
+
+  <!-- Drop down selection of existing Dataset -->
+  <div class="input-tile grid-top-right flex-left">
+    <span class="input-instructions">You can select an existing dataset: </span>
+    <span id="dropdowncontainer" class="input-selector-container">
+      <select id="author-selection" oninput="attachDateOpts(this.value)">
+        <option name="None"> </option>
+      </select>
+    </span>
+    <span class="selected-experiment-preview"><b>No Selection</b></span>
+    <div>
+      <button class="action button" onclick="goToInput(this)">Submit</button>
+      <button class="warning button" onclick="deleteSelection(this)">Delete</button>
+    </div>
+  </div>
+
+  <!-- Calendar Selector for existing datasets -->
+  <div class="input-tile grid-bottom-right flex-left">
+    <span class="input-instructions">Or try the dataset calendar: </span>
+    <span id="flatpickr-container" class="input-selector-container">
+      <select id="cal-author-selection" oninput="updateCalendar(this.value)">
+        <option name="None"> </option>
+      </select>
+      <input id="flatpickr" type="text" placeholder="Select Initials First.." autocomplete="off" readonly="readonly">
+    </span>
+    <span class="selected-experiment-preview"><b>No Selection</b></span>
+    <div>
+      <button class="action button" onclick="goToInput(this)">Submit</button>
+      <button class="warning button" onclick="deleteSelection(this)">Delete</button>
+    </div>
+  </div>
+
+  <!-- Clinical Research Uploader -->
+  <form class="grid-center-right" action="{{ url_for('clinical.ResultBypass') }}" method="POST" enctype="multipart/form-data">
+    <div class="input-tile flex-left">
+      <span class="input-instructions">Upload Info File for Results: </span>
+      <p class="file-input">INFO File:
+            <input name="files" id="clinical_infofile" type="file" oninput="validateFile(this, 'info')" autocomplete="off" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"/>
+          </p>
+      <div>
+        <input class="action button" type="submit" value="Upload" />
+      </div>
+    </div>
+  </form>
+</div>
+
+<br/><br/>
+
+<script>
+  window.onload = initPage;
+  const inputURL = "{{ url_for('research.analysis', id='') }}";
+  const deleteURL = "{{ url_for('research.delete', id='') }}";
+  const datasetOpts = [
+    {% for dataset in datasets %}
+      { name: "{{ dataset.get_id() }}", version: "{{ dataset.get_version() }}" },
+    {% endfor %}
+  ];
+
+</script>
+
+
+{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block buttons %}{% endblock %}
+
+

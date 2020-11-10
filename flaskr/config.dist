@@ -1,0 +1,12 @@
+import os
+
+SECRET_KEY = 'LDoQEf4npbK9n4ZM'
+DB_HOST = os.environ['DB_HOST']
+DB_NAME = os.environ['DB_NAME']
+DB_PORT = os.environ['DB_PORT']
+VERSION = os.environ['VERSION']
+SES_REGION_NAME = os.environ['SES_REGION_NAME']
+SES_EMAIL_SOURCE = os.environ['SES_EMAIL_SOURCE']
+AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+WKHTMLTOPDF_PATH = os.environ['WKHTMLTOPDF_PATH']

@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - pip install -r requirements.txt
+      - pip install pytest==5.0.1 coverage==4.5.3
+      - pip3 install pytest
+  build:
+    commands:
+      - apt-get update && apt-get install zip
+      - export RANDOM_STRING=$(openssl rand -base64 12 | sed 's/[\\|\/]/a/')
+      - touch flaskr/config.py
+      - sed "s/{{random}}/$RANDOM_STRING/" flaskr/config.dist > flaskr/config.py
+      - npm install
+      - npm run build
+artifacts:
+  files:
+    - '**/*'

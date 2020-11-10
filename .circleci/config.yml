@@ -1,0 +1,29 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    docker:
+      - image: circleci/python
+      - image: circleci/mongo
+    steps:
+      - checkout
+      - run:
+          name: Activate venv and install requirements
+          command: |
+            python3 -m venv ~/venv
+            echo ". ~/venv/bin/activate" >> $BASH_ENV
+            source $BASH_ENV
+            pip install -r requirements.txt
+            pip install pytest==6.0.1
+            pip install "pytest-mock-resources[mongo]"
+      - run:
+          name: Run tests
+          command: python3 -m pytest
+workflows:
+  main:
+    jobs:
+      - build-and-test

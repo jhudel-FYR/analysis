@@ -1,0 +1,487 @@
+.input-grid-container {
+    display: inline-grid;
+    grid-gap: 2px;
+    background-color: black;
+    grid-template-columns: 280px 280px 280px;
+    grid-template-rows: auto;
+    grid-template-areas: 
+      "exp-type-opts            extra-opts              extra-opts"
+      "edit-components          edit-components         edit-components"
+      /* "edit-labels              edit-labels             edit-labels" */
+      "plate-editor-container          plate-editor-container         plate-editor-container"
+}
+
+.input-grid-area {
+    background-color: white;
+    padding: 15px 10px 15px 10px;
+}
+
+.exp-type-opts {
+    grid-area: exp-type-opts;
+    border-bottom-right-radius: 5px;
+}
+
+.extra-opts {
+    grid-area: extra-opts;
+    border-bottom-left-radius: 5px;
+}
+
+.edit-components {
+    grid-area: edit-components
+}
+
+#plate-editor {
+    position: relative;
+    border: 2px solid rgba(66, 68, 90, 0.075);
+    background-color: #f2f5f7;
+    grid-template-columns: repeat(12, 1fr);
+    display: grid;
+    width: 100%;
+    margin: auto;
+    justify-content: space-evenly;
+    align-content: center;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+.well {
+    margin: 2px;
+    width: 64px;
+    height: 64px;
+    border-radius: .3em;
+    transition: all 0.3s;
+    background-color: white;
+    position: relative;
+    user-select: none;
+}
+
+.large-plate {
+    width: 32px;
+    height: 32px;
+    font-size: 10pt;
+}
+
+.selected {
+    background-color: #7fa0eb;
+}
+
+.selection {
+    background: rgba(217, 46, 116, .11);
+    border-radius: 0.2em;
+    border: 2px solid rgba(217, 46, 116, .81);
+}
+
+.highlighted-well {
+    background-color: #7febc2;
+}
+
+.swapped-well, .marked-error {
+    background-color: #eb8181;
+    color: white;
+}
+
+.empty-well {
+    background-color: lightslategray;
+    color: white;
+}
+
+#plate-editor-container              {
+    background: whitesmoke;
+    grid-area: plate-editor-container;
+}
+
+#plate-editor-btn-container {
+    display: flex;
+    justify-content: space-evenly;
+    margin-bottom: 10px;
+}
+
+.active-editor {
+    opacity: .9;
+    background-color: #d92e74;
+    border: 2px solid #d92e74;
+    color: white;
+}
+
+.hidden {
+    display: none;
+}
+
+#group-inputs {
+    display: inline-block;
+}
+
+.info-title {
+    font-weight: bold;
+}
+
+.gr-name-input {
+    width: inherit;
+    height: fit-content;
+}
+
+.gr-number {
+    width: 3rem;
+    font-weight: bold;
+    color: white;
+    display: inline-block;
+    text-align: center;
+    padding: .5rem 0;
+}
+
+.gr-buttons {
+    text-align: right;
+    margin: .5rem 0;
+}
+
+.gr-grid {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    grid-template-rows: 1fr 1fr;
+    margin: 6px;
+    min-width: 400px;
+}
+
+.gr-row-grid {
+    display: grid;
+    grid-template-columns: .5rem 1fr max-content;
+    grid-gap: .7rem;
+    width: 100%;
+    padding: .1rem 0;
+    grid-row: span 2;
+}
+
+.gr-grid div:nth-child(even) {
+  background-color: lightgray;
+}
+
+.group-label {
+    grid-column: 1 / 1;
+    grid-row: 1 / span 1000;
+    border-top-left-radius: .5rem;
+    border-bottom-left-radius: .5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 1.25rem;
+}
+
+.rep-designation {
+    justify-self: end;
+    align-self: center;
+    font-weight: bold;
+}
+
+.rep-label {
+    justify-self: end;
+    align-self: center;
+}
+
+.selected-triangle {
+    transform: scale(.85);
+}
+
+.triangle {
+    display: inline-block;
+    width: 0; 
+    height: 0; 
+    border-top: .7rem solid transparent;
+    border-bottom: .7rem solid transparent;
+    border-left: .7rem solid transparent;
+    align-self: center;
+}
+
+.sm-well-triangle {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 16px 16px;
+    border-color: transparent;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+.well > p {
+    margin: 4px;
+}
+
+.gr-flex {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.enable-focus {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+    opacity: 50%;
+    background-color: gray;
+    z-index: 99;
+}
+
+.hidden {
+    display: hidden;
+}
+
+#selection-confirmation {
+    z-index: 100;
+    position: relative;
+    text-align: center;
+    padding: 8px;
+    border-radius: .5rem;
+    background-color: white;
+}
+
+.no-select {
+    user-select: none;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.rep-row-btn {
+    vertical-align: middle;
+    height: 1.4em;
+    width: auto;
+    cursor: pointer;
+}
+
+.gr-rem-btn {
+    cursor: pointer;
+}
+
+.highlight {
+    box-shadow: 0px -30px 15px -1em #47d6c8 inset
+}
+
+.message-holder {
+    padding-bottom: 6px;
+}
+
+#msg-color {
+    display: inline-block;  
+    height: 1rem;
+    width: 1rem;
+}
+
+
+
+
+/* NOTHING SHOULD GO BELOW THESE COLORS */
+
+/*
+Group Color Set
+*/
+
+.gr-1, .gr-10, .gr-19, .gr-28 {
+    background-color: #845E7ED0;
+}
+
+.gr-2, .gr-11, .gr-20, .gr-29 {
+    background-color: #E75292D0;
+}
+
+.gr-3, .gr-12, .gr-21, .gr-30 {
+    background-color: #db4444;
+}
+
+.gr-4, .gr-13, .gr-22, .gr-31 {
+    background-color: #69267DD0;
+}
+
+.gr-5, .gr-14, .gr-23, .gr-32 {
+    background-color: #e8921a;
+}
+
+.gr-6, .gr-15, .gr-24, .gr-33 {
+    background-color: #3F978CD0;
+}
+
+.gr-7, .gr-16, .gr-25, .gr-34 {
+    background-color: #67e6dc;
+}
+
+.gr-8, .gr-17, .gr-26, .gr-35 {
+    background-color: #17c0eb;
+}
+
+.gr-9, .gr-18, .gr-27, .gr-36 {
+    background-color: #7d5fff;
+}
+
+
+
+
+/* 
+Replicates Color Set (Tableau-20):
+http://vis.stanford.edu/color-names/analyzer/
+*/
+
+.rep-1 {
+    border-left-color: #1f77b4;
+}
+
+.rep-2 {
+    border-left-color: #aec7e8;
+}
+
+.rep-3 {
+    border-left-color: #ff7f0e;
+}
+
+.rep-4 {
+    border-left-color: #ffbb78;
+}
+
+.rep-5 {
+    border-left-color: #2ca02c;
+}
+
+.rep-6 {
+    border-left-color: #98df8a;
+}
+
+.rep-7 {
+    border-left-color: #d62728;
+}
+
+.rep-8 {
+    border-left-color: #ff9896;
+}
+
+.rep-9 {
+    border-left-color: #9467bd;
+}
+
+.rep-10 {
+    border-left-color: #c5b0d5;
+}
+
+.rep-11 {
+    border-left-color: #8c564b;
+}
+
+.rep-12 {
+    border-left-color: #c49c94;
+}
+
+.rep-13 {
+    border-left-color: #e377c2;
+}
+
+.rep-14 {
+    border-left-color: #f7b6d2;
+}
+
+.rep-15 {
+    border-left-color: #7f7f7f;
+}
+
+.rep-16 {
+    border-left-color: #c7c7c7;
+}
+
+.rep-17{
+    border-left-color: #bcbd22;
+}
+
+.rep-18 {
+    border-left-color: #dbdb8d;
+}
+
+.rep-19 {
+    border-left-color: #17becf;
+}
+
+.rep-20 {
+    border-left-color: #9edae5;
+}
+
+
+/* for the trianles inside the wells */
+
+.rep-well-tri-1 {
+    border-bottom-color: #1f77b4;
+}
+
+.rep-well-tri-2 {
+    border-bottom-color: #aec7e8;
+}
+
+.rep-well-tri-3 {
+    border-bottom-color: #ff7f0e;
+}
+
+.rep-well-tri-4 {
+    border-bottom-color: #ffbb78;
+}
+
+.rep-well-tri-5 {
+    border-bottom-color: #2ca02c;
+}
+
+.rep-well-tri-6 {
+    border-bottom-color: #98df8a;
+}
+
+.rep-well-tri-7 {
+    border-bottom-color: #d62728;
+}
+
+.rep-well-tri-8 {
+    border-bottom-color: #ff9896;
+}
+
+.rep-well-tri-9 {
+    border-bottom-color: #9467bd;
+}
+
+.rep-well-tri-10 {
+    border-bottom-color: #c5b0d5;
+}
+
+.rep-well-tri-11 {
+    border-bottom-color: #8c564b;
+}
+
+.rep-well-tri-12 {
+    border-bottom-color: #c49c94;
+}
+
+.rep-well-tri-13 {
+    border-bottom-color: #e377c2;
+}
+
+.rep-well-tri-14 {
+    border-bottom-color: #f7b6d2;
+}
+
+.rep-well-tri-15 {
+    border-bottom-color: #7f7f7f;
+}
+
+.rep-well-tri-16 {
+    border-bottom-color: #c7c7c7;
+}
+
+.rep-well-tri-17{
+    border-bottom-color: #bcbd22;
+}
+
+.rep-well-tri-18 {
+    border-bottom-color: #dbdb8d;
+}
+
+.rep-well-tri-19 {
+    border-bottom-color: #17becf;
+}
+
+.rep-well-tri-20 {
+    border-bottom-color: #9edae5;
+}

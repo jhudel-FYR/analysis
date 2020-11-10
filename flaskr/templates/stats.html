@@ -1,0 +1,143 @@
+{% extends "master.html" %}
+
+{% block title %} Statistical Tools {% endblock %}
+
+{% block body %}
+<br>
+
+
+<div class="formwrapper">
+    <form method="POST">
+
+        <div>
+            {% if id %}
+                <p> Selected Dataset ID: {{id}}</p>
+            {% endif %}
+        </div>
+
+        <div>
+<!--            <b>Export CSV</b><br>-->
+<!--            <input type="checkbox" id="csv" name="csv" value="csv">-->
+<!--            <label for="csv">Export to CSV</label>-->
+            <br>
+            Please select an Experiment Type and at least one graph and an inflection point before continuing.
+            <p></p>
+            <b>Experiment Type:</b><br>
+            <input type="checkbox" id="base" name="base" value="base" onchange="showTargets()">
+            <label for="base">Base Assay</label>
+            <div class="target">
+                <input type="radio" id="miR-399b-3p" name="tar_type" value="miR-399b-3p">
+                <label for="miR-399b-3p">miRcat</label>
+                <input type="radio" id="miR-455-3p" name="tar_type" value="miR-455-3p">
+                <label for="miR-455-3p">miR2D2</label>
+            </div><br>
+            <input type="radio" id="COVID" name="exp_type" value="COVID" autocomplete="off" required>
+            <label for="COVID">COVID-19</label><br>
+            <input type="radio" id="RT-PCR" name="exp_type" value="RT-PCR">
+            <label for="RT-PCR">RT-PCR</label><br>
+            <input type="radio" id="gPCR" name="exp_type" value="gPCR">
+            <label for="gPCR">gPCR</label><br>
+            <input type="radio" id="UDAR" name="exp_type" value="UDAR">
+            <label for="UDAR">UDAR</label><br>
+            <br>
+        </div>
+
+      <br>
+      <div id="stat-features">
+          <b>Graphs:</b><br>
+          <input type="checkbox" name='violins' id="violins"/>
+          <label for="violins"> Violin plots </label><br>
+
+          <input type="checkbox" name='scatters' id="scatters"/>
+          <label for="scatters"> Scatter plots </label><br>
+
+          <input type="checkbox" name='histograms' id="histograms"/>
+          <label for="histograms"> Histograms </label><br>
+
+          <input type="checkbox" name='customcovid' id="customcovid"/>
+          <label for="customcovid"> Custom COVID Graphs  </label><br>
+          <br>
+          <input type="checkbox" id="allplots" name="allplots" value="plots">
+          <label for="allplots">Show all</label><br>
+
+<!--          <input type="checkbox" name='time_trends' id="time_trends"/>-->
+<!--          <label for="time_trends"> Concentration Trends </label><br>-->
+
+<!--          <input type="checkbox" name='last_exp' id="last_exp"/>-->
+<!--          <label for="last_exp"> Last Experiment Comparison </label><br>-->
+          <br>
+      </div>
+
+      <div id="data-features">
+          <b>Data:</b><br>
+          <input type="checkbox" id="inflection1" name="inflection1">
+           <label for="inflection1">Inflection 1</label><br>
+          <input type="checkbox" id="inflection2" name="inflection2">
+           <label for="inflection2">Inflection 2</label><br>
+          <input type="checkbox" id="inflection3" name="inflection3">
+           <label for="inflection3">Inflection 3</label><br>
+          <input type="checkbox" id="inflection4" name="inflection4">
+           <label for="inflection4">Inflection 4</label><br>
+          <input type="checkbox" id="threshold" name="threshold">
+           <label for="threshold">Generic Threshold</label><br>
+
+           <br><b>Group By:</b><br>
+          <input type="checkbox" id="concentration" name="concentration">
+           <label for="concentration">Concentration</label><br>
+      </div>
+
+        <br>
+        <a name='update' value="update"><button class="action button" >Update</button></a>
+
+      <br><br>
+
+  </form>
+</div>
+
+<script>
+    var features = {{ features|tojson }};
+    for (let el in features) {
+        if (features[el] === 'on') {
+            document.getElementById(el).checked = true;
+        }
+        else {
+            document.getElementById(features[el]).checked = true;
+        }
+    }
+
+    showTargets();
+
+    function showTargets() {
+        let targets = document.getElementsByClassName('target');
+        for (let i=0; targets.length-1; i++){
+            if (document.getElementById('base').checked) {
+                targets[i].style.display = "block";
+            } else {
+                targets[i].style.display = "none";
+            }
+            }
+    }
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div id="graph-container">
+    {%for graph in graphs %}
+    <div id="image">
+        <img src="data:image/png;base64,{{graph}}" alt='' width="200" ><br>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    div.image{
+        overflow:hidden;
+    }
+</style>
+
+{% endblock %}
+
+{% block buttons %}{% endblock %}
+
+
